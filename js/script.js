@@ -389,3 +389,79 @@ window.addEventListener("popstate", (e) => {
 /* =================== APP INIT =================== */
 initCardEvents();
 filterCards("all");
+
+/* =================== HEADER FUNCTIONS =================== */
+document.addEventListener("DOMContentLoaded", () => {
+  const mobileMenuToggle = document.querySelector(".mobile-menu-toggle");
+  const body = document.body;
+  const navLinks = document.querySelectorAll(".nav-link");
+
+  mobileMenuToggle?.addEventListener("click", () => {
+    body.classList.toggle("mobile-menu-open");
+  });
+
+  navLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      body.classList.remove("mobile-menu-open");
+
+      navLinks.forEach((l) => l.classList.remove("active"));
+      link.classList.add("active");
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (
+      body.classList.contains("mobile-menu-open") &&
+      !e.target.closest(".nav-links") &&
+      !e.target.closest(".mobile-menu-toggle")
+    ) {
+      body.classList.remove("mobile-menu-open");
+    }
+  });
+
+  function setInitialActiveState() {
+    const hash = window.location.hash || "#home";
+    const activeLink = document.querySelector(`.nav-link[href="${hash}"]`);
+
+    if (activeLink) {
+      navLinks.forEach((l) => l.classList.remove("active"));
+      activeLink.classList.add("active");
+    }
+  }
+
+  setInitialActiveState();
+
+  window.addEventListener("scroll", () => {
+    if (!window.requestAnimationFrame) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const scrollPosition = window.scrollY;
+      let currentSection = "";
+
+      document.querySelectorAll("section[id]").forEach((section) => {
+        const sectionTop = section.offsetTop - 100;
+        const sectionHeight = section.offsetHeight;
+
+        if (
+          scrollPosition >= sectionTop &&
+          scrollPosition < sectionTop + sectionHeight
+        ) {
+          currentSection = "#" + section.getAttribute("id");
+        }
+      });
+
+      if (currentSection !== "") {
+        const shouldBeActive = document.querySelector(
+          `.nav-link[href="${currentSection}"]`
+        );
+
+        if (shouldBeActive && !shouldBeActive.classList.contains("active")) {
+          navLinks.forEach((l) => l.classList.remove("active"));
+          shouldBeActive.classList.add("active");
+        }
+      }
+    });
+  });
+});

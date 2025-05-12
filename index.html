@@ -3,14 +3,70 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="A portfolio showcasing my software projects with categories and detailed modal previews." />
+    <meta
+      name="description"
+      content="A portfolio showcasing my software projects with categories and detailed modal previews."
+    />
     <title>Project Portfolio Cards</title>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <link rel="stylesheet" href="./css/style.css" />
   </head>
+
   <body>
-    <main>
+    <!-- Header -->
+    <header class="site-header">
+      <div class="container header-container">
+        <a href="#" class="logo">ÖÖ</a>
+
+        <nav class="main-nav">
+          <button class="mobile-menu-toggle" aria-label="Menüyü aç/kapat">
+            <span class="hamburger"></span>
+          </button>
+
+          <ul class="nav-links">
+            <li><a href="#home" class="nav-link active">Home</a></li>
+            <li><a href="#about" class="nav-link">About</a></li>
+            <li><a href="#projects" class="nav-link">Projects</a></li>
+            <li><a href="#contact" class="nav-link">Contact</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Home Section -->
+      <section id="home">
+        <div class="container">
+          <h1 class="hero-title">
+            Welcome to My Portfolio
+            <span class="highlight">Ömer Öztoprak</span>
+          </h1>
+          <p class="hero-description">
+            Explore my projects and get to know me better.
+          </p>
+          <a href="#projects" class="hero-button">View Projects</a>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section id="about">
+        <div class="container">
+          <h2 class="section-title">About Me</h2>
+          <p>
+            I am a passionate software developer with a focus on creating innovative solutions.
+            My portfolio showcases a variety of projects that demonstrate my skills and creativity.
+          </p>
+          <p>
+            I enjoy working with modern technologies and continuously learning
+            new skills to enhance my development capabilities.
+          </p>
+        </div>
+      </section>
+
       <!-- Projects Section -->
       <section id="projects" class="cards-section" aria-labelledby="projects-heading">
         <div class="container">
@@ -28,19 +84,36 @@
         </div>
       </section>
 
-      <!-- Project Detail Modal -->
-      <div class="modal-overlay" style="display: none" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <!-- Project Modal -->
+      <div
+        class="modal-overlay"
+        style="display: none"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
         <div class="modal">
-          <button class="modal-close interactive-control circular-button" aria-label="Close modal">
+          <button
+            class="modal-close interactive-control circular-button"
+            aria-label="Close modal"
+          >
             <i class="fas fa-times" aria-hidden="true"></i>
           </button>
 
           <div class="modal-gallery">
-            <button class="gallery-nav prev interactive-control circular-button" aria-label="Previous image">
+            <button
+              class="gallery-nav prev interactive-control circular-button"
+              aria-label="Previous image"
+            >
               <i class="fas fa-chevron-left" aria-hidden="true"></i>
             </button>
+
             <img src="" alt="Project image" class="modal-img" loading="lazy" />
-            <button class="gallery-nav next interactive-control circular-button" aria-label="Next image">
+
+            <button
+              class="gallery-nav next interactive-control circular-button"
+              aria-label="Next image"
+            >
               <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
           </div>
@@ -52,11 +125,33 @@
           <p class="modal-description"></p>
 
           <div class="modal-buttons">
-            <a href="#" class="modal-btn" target="_blank" rel="noopener noreferrer">Live Demo</a>
-            <a href="#" class="modal-btn" target="_blank" rel="noopener noreferrer">Source Code</a>
+            <a
+              href="#"
+              class="modal-btn"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Live Demo</a>
+
+            <a
+              href="#"
+              class="modal-btn"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Source Code</a>
           </div>
         </div>
       </div>
+
+      <!-- Contact Section -->
+      <section id="contact">
+        <div class="container">
+          <h2 class="section-title">Contact Me</h2>
+          <p>
+            If you would like to get in touch, feel free to reach out via email
+            or connect with me on social media.
+          </p>
+        </div>
+      </section>
     </main>
 
     <script type="module" src="./js/script.js"></script>

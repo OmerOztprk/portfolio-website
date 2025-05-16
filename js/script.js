@@ -7,7 +7,7 @@ const CONFIG = {
   autoSlideInterval: 3000,
   resumeSlideTimeout: 2000,
   scrollOffset: 80,
-  fallbackImage: "./assets/images/default.png"
+  fallbackImage: "./assets/images/default.png",
 };
 
 // =================== DOM ELEMENTS ===================
@@ -101,7 +101,9 @@ function createCards() {
 
     card.innerHTML = `
       <div class="card-image">
-        <img src="${item.images[0] || CONFIG.fallbackImage}" alt="${item.title}" loading="lazy" />
+        <img src="${item.images[0] || CONFIG.fallbackImage}" alt="${
+      item.title
+    }" loading="lazy" />
         <div class="card-overlay">
           <div class="card-links">${links}</div>
         </div>
@@ -396,7 +398,7 @@ function handleScroll() {
           shouldBeActive.classList.add("active");
         }
       }
-      
+
       // Handle scroll-to-top button visibility
       if (scrollToTopBtn) {
         scrollToTopBtn.style.display = scrollPosition > 300 ? "block" : "none";
@@ -409,14 +411,14 @@ function handleScroll() {
 function initTypewriter() {
   const professionText = document.getElementById("profession-text");
   if (!professionText) return;
-  
+
   const professions = [
     "Web Developer",
     "Frontend Designer",
     "UX Enthusiast",
     "Software Engineer",
   ];
-  
+
   let currentProfessionIndex = 0;
   let currentCharIndex = 0;
   let isDeleting = false;
@@ -458,7 +460,7 @@ function initTypewriter() {
   setTimeout(typeEffect, 1000);
 }
 
-// =================== SMOOTH SCROLLING =================== 
+// =================== SMOOTH SCROLLING ===================
 function initSmoothScrolling() {
   internalLinks.forEach((link) => {
     link.addEventListener("click", function (e) {
@@ -478,7 +480,7 @@ function initSmoothScrolling() {
       }
     });
   });
-  
+
   // Scroll to top button functionality
   if (scrollToTopBtn) {
     scrollToTopBtn.addEventListener("click", function () {
@@ -537,14 +539,14 @@ function setupEventListeners() {
   });
 
   // Modal event listeners
-  modalClose.addEventListener('click', closeModal);
-  prevBtn.addEventListener('click', () => {
+  modalClose.addEventListener("click", closeModal);
+  prevBtn.addEventListener("click", () => {
     pauseSlide();
     prevImage();
     clearTimeout(resumeTimeout);
     resumeTimeout = setTimeout(resumeSlide, CONFIG.resumeSlideTimeout);
   });
-  nextBtn.addEventListener('click', () => {
+  nextBtn.addEventListener("click", () => {
     pauseSlide();
     nextImage();
     clearTimeout(resumeTimeout);
@@ -567,7 +569,7 @@ function setupEventListeners() {
       resumeTimeout = setTimeout(resumeSlide, CONFIG.resumeSlideTimeout);
     }
   });
-  
+
   // Reset scroll position on page load
   window.addEventListener("load", function () {
     window.scrollTo(0, 0);
@@ -580,17 +582,17 @@ function init() {
   createCards();
   initCardEvents();
   filterCards("all");
-  
+
   // Setup navigation and scrolling
   initNavigation();
   initSmoothScrolling();
-  
+
   // Setup animations
   initTypewriter();
-  
+
   // Setup routing
   initRouting();
-  
+
   // Setup event listeners
   setupEventListeners();
 }

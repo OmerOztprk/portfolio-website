@@ -1097,57 +1097,344 @@ body {
   transform: translateY(-1px);
 }
 
+/* CONTACT SECTION */
+#contact {
+  padding: 100px 0;
+  background-color: var(--body-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+#contact::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 70% 80%, rgba(0, 113, 227, 0.05) 0%, transparent 70%);
+  z-index: 0;
+}
+
+.contact-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.contact-info-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  opacity: 0;
+  animation: fadeInUp 0.8s 0.2s forwards;
+}
+
+.contact-description {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border-radius: 24px;
+  padding: 35px 40px;
+  box-shadow: var(--shadow);
+  transform: translateY(0);
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+
+.contact-description:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+}
+
+.contact-description p {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: var(--text-light);
+  position: relative;
+  z-index: 1;
+}
+
+.contact-item {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  transition: var(--transition);
+  overflow: hidden;
+}
+
+.contact-item::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.contact-item:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 22px 40px rgba(0, 0, 0, 0.1);
+}
+
+.contact-item:hover::before {
+  opacity: 1;
+}
+
+.contact-item i {
+  font-size: 2rem;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.1) 0%, rgba(66, 165, 245, 0.1) 100%);
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 113, 227, 0.1);
+}
+
+.contact-item:hover i {
+  transform: translateY(-5px) rotate(-5deg);
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  color: white;
+  box-shadow: 0 10px 20px rgba(0, 113, 227, 0.2);
+}
+
+.contact-text {
+  flex: 1;
+}
+
+.contact-text h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    color: var(--text-dark);
+    transition: color 0.3s ease;
+}
+
+.contact-item:hover .contact-text h3 {
+  color: var(--primary-color);
+}
+
+.contact-text p, .contact-text a {
+  font-size: 1.1rem;
+  color: var(--text-light);
+  margin: 0;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.contact-text a {
+  position: relative;
+  overflow: hidden;
+}
+
+.contact-text a::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary-color);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.contact-text a:hover {
+  color: var(--primary-color);
+  transform: translateX(5px);
+}
+
+.contact-text a:hover::after {
+  transform: translateX(0);
+}
+
+/* Responsive düzenlemeler */
+@media (max-width: 768px) {
+  .contact-info-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .contact-description,
+  .contact-item {
+    padding: 30px;
+  }
+  
+  .contact-item i {
+    width: 60px;
+    height: 60px;
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .contact-description,
+  .contact-item {
+    padding: 25px;
+  }
+  
+  .contact-description p,
+  .contact-text p, 
+  .contact-text a {
+    font-size: 1rem;
+  }
+  
+  .contact-text h3 {
+    font-size: 1.2rem;
+  }
+  
+  .contact-item i {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    border-radius: 15px;
+  }
+}
+
 /* ANIMATIONS */
 @keyframes wave {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-15deg); }
-  50% { transform: rotate(0deg); }
-  75% { transform: rotate(15deg); }
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-15deg);
+  }
+
+  50% {
+    transform: rotate(0deg);
+  }
+
+  75% {
+    transform: rotate(15deg);
+  }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes scrollWheel {
-  0% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(15px); opacity: 0; }
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(15px);
+    opacity: 0;
+  }
 }
 
 @keyframes arrowFade {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeInRight {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeInLeft {
-  from { opacity: 0; transform: translateX(20px);}
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes pop {
-  0% { transform: scale(0.85) translateY(40px); opacity: 0; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
+  0% {
+    transform: scale(0.85) translateY(40px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
 }
 
 /* RESPONSIVE STYLES */
@@ -1169,20 +1456,20 @@ body {
     align-items: center;
     gap: 40px;
   }
-  
+
   .about-image-container {
     margin-bottom: 20px;
   }
-  
+
   .about-content {
     text-align: center;
   }
-  
+
   .skills-title::after {
     left: 50%;
     transform: translateX(-50%);
   }
-  
+
   .resume-button {
     margin: 40px auto 0;
   }
@@ -1193,7 +1480,7 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 24px;
   }
-  
+
   .hero-title {
     font-size: 2.8rem;
   }
@@ -1260,7 +1547,7 @@ body {
   .card-info {
     padding: 20px;
   }
-  
+
   .hero-title {
     font-size: 2.2rem;
   }
@@ -1286,11 +1573,11 @@ body {
     width: 220px;
     height: 220px;
   }
-  
+
   .skills-container {
     grid-template-columns: 1fr;
   }
-  
+
   .about-text p {
     font-size: 1rem;
   }

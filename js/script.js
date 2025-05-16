@@ -570,6 +570,12 @@ function setupEventListeners() {
     }
   });
 
+  // Telif hakkı yılını güncelle
+  const yearSpan = document.getElementById("current-year");
+  if (yearSpan) {
+    yearSpan.textContent = new Date().getFullYear();
+  }
+
   // Reset scroll position on page load
   window.addEventListener("load", function () {
     window.scrollTo(0, 0);

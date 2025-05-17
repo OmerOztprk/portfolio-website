@@ -1,6 +1,6 @@
 /**
  * Portfolio Cards - Main JavaScript
- * 
+ *
  * This script handles the dynamic portfolio cards display, filtering,
  * modal interactions, and navigation functionality.
  */
@@ -13,19 +13,19 @@ const CONFIG = {
   // Card settings
   cardsPerPage: 6,
   fallbackImage: "./assets/images/default.png",
-  
+
   // Modal settings
   autoSlideInterval: 3000,
   resumeSlideTimeout: 2000,
-  
+
   // Navigation
   scrollOffset: 80,
-  
+
   // Animation
   typewriterSpeed: 100,
   typewriterDeleteSpeed: 50,
   typewriterPause: 1500,
-  typewriterDelay: 300
+  typewriterDelay: 300,
 };
 
 // =================== APP STATE ===================
@@ -34,7 +34,7 @@ const AppState = {
   cards: [],
   filteredCards: [],
   currentPage: 1,
-  
+
   // Modal
   modalImageList: [],
   currentImageIndex: 0,
@@ -42,7 +42,7 @@ const AppState = {
   isSlideHeld: false,
   resumeTimeout: null,
   savedScrollPosition: 0,
-  
+
   // Reset all state
   reset() {
     this.cards = [];
@@ -53,25 +53,25 @@ const AppState = {
     this.isSlideHeld = false;
     clearInterval(this.autoSlideInterval);
     clearTimeout(this.resumeTimeout);
-  }
+  },
 };
 
 // =================== DOM ELEMENTS ===================
 const DOM = {
   // Core elements
   body: document.body,
-  
+
   // Navigation
   mobileMenuToggle: document.querySelector(".mobile-menu-toggle"),
   navLinks: document.querySelectorAll(".nav-link"),
   internalLinks: document.querySelectorAll('a[href^="#"]'),
   scrollToTopBtn: document.querySelector(".scroll-to-top"),
-  
+
   // Cards & Filtering
   filterButtons: document.querySelectorAll(".filter-btn"),
   cardsGrid: document.querySelector(".cards-grid"),
   paginationContainer: document.querySelector(".pagination"),
-  
+
   // Modal elements
   modalOverlay: document.querySelector(".modal-overlay"),
   modalImg: document.querySelector(".modal-img"),
@@ -84,10 +84,10 @@ const DOM = {
   modalBtn1: document.querySelector(".modal-buttons a:nth-child(1)"),
   modalBtn2: document.querySelector(".modal-buttons a:nth-child(2)"),
   thumbsWrapper: document.querySelector(".modal-thumbs"),
-  
+
   // Animation elements
   professionText: document.getElementById("profession-text"),
-  yearSpan: document.getElementById("current-year")
+  yearSpan: document.getElementById("current-year"),
 };
 
 // =================== HELPER FUNCTIONS ===================
@@ -109,12 +109,12 @@ const Helpers = {
     const focusable = element.querySelectorAll(
       'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])'
     );
-    
+
     if (focusable.length === 0) return;
-    
+
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    
+
     element.addEventListener("keydown", (e) => {
       if (e.key === "Tab") {
         if (e.shiftKey && document.activeElement === first) {
@@ -126,7 +126,7 @@ const Helpers = {
         }
       }
     });
-  }
+  },
 };
 
 // =================== CARD MODULE ===================
@@ -136,7 +136,7 @@ const CardModule = {
    */
   createCards() {
     DOM.cardsGrid.innerHTML = "";
-    
+
     cardsData.forEach((item) => {
       const card = document.createElement("div");
       card.className = "card-item";
@@ -147,8 +147,9 @@ const CardModule = {
       card.dataset.projectSlug = item.slug;
 
       const links = item.links
-        .map(link => 
-          `<a href="${link.url}" target="_blank" class="card-link-item">
+        .map(
+          (link) =>
+            `<a href="${link.url}" target="_blank" class="card-link-item">
             <i class="${link.icon}"></i>
           </a>`
         )
@@ -156,7 +157,9 @@ const CardModule = {
 
       card.innerHTML = `
         <div class="card-image">
-          <img src="${item.images[0] || CONFIG.fallbackImage}" alt="${item.title}" loading="lazy" />
+          <img src="${item.images[0] || CONFIG.fallbackImage}" alt="${
+        item.title
+      }" loading="lazy" />
           <div class="card-overlay">
             <div class="card-links">${links}</div>
           </div>
@@ -167,7 +170,7 @@ const CardModule = {
           <p class="card-description">${item.description}</p>
           <button class="view-details-btn">View Details</button>
         </div>`;
-        
+
       DOM.cardsGrid.appendChild(card);
     });
 
@@ -180,9 +183,9 @@ const CardModule = {
    */
   filterCards(filter) {
     AppState.filteredCards = AppState.cards.filter(
-      card => filter === "all" || card.dataset.category === filter
+      (card) => filter === "all" || card.dataset.category === filter
     );
-    
+
     AppState.currentPage = 1;
     this.renderPagination();
     this.showPage(1);
@@ -192,31 +195,35 @@ const CardModule = {
    * Shows cards for current page
    */
   showPage(page) {
-    AppState.cards.forEach(card => {
+    AppState.cards.forEach((card) => {
       card.style.display = "none";
       card.classList.add("hide");
     });
-    
+
     const start = (page - 1) * CONFIG.cardsPerPage;
-    AppState.filteredCards.slice(start, start + CONFIG.cardsPerPage).forEach(card => {
-      card.style.display = "flex";
-      setTimeout(() => card.classList.remove("hide"), 50);
-    });
+    AppState.filteredCards
+      .slice(start, start + CONFIG.cardsPerPage)
+      .forEach((card) => {
+        card.style.display = "flex";
+        setTimeout(() => card.classList.remove("hide"), 50);
+      });
   },
 
   /**
    * Renders pagination controls
    */
   renderPagination() {
-    const total = Math.ceil(AppState.filteredCards.length / CONFIG.cardsPerPage);
+    const total = Math.ceil(
+      AppState.filteredCards.length / CONFIG.cardsPerPage
+    );
     DOM.paginationContainer.innerHTML = "";
-    
+
     // No pagination needed if only one page
     if (total <= 1) return;
 
     // Add previous button
     this.addPaginationButton(
-      '<i class="fas fa-chevron-left"></i>', 
+      '<i class="fas fa-chevron-left"></i>',
       AppState.currentPage === 1,
       () => {
         AppState.currentPage--;
@@ -229,7 +236,7 @@ const CardModule = {
     const maxPages = 3;
     let start = Math.max(1, AppState.currentPage - Math.floor(maxPages / 2));
     let end = Math.min(total, start + maxPages - 1);
-    
+
     if (end - start + 1 < maxPages) {
       start = Math.max(1, end - maxPages + 1);
     }
@@ -239,12 +246,12 @@ const CardModule = {
       this.addPageButton(1);
       if (start > 2) DOM.paginationContainer.append(Helpers.createDots());
     }
-    
+
     // Add page numbers
     for (let i = start; i <= end; i++) {
       this.addPageButton(i);
     }
-    
+
     // Add dots + last page if needed
     if (end < total) {
       if (end < total - 1) DOM.paginationContainer.append(Helpers.createDots());
@@ -253,7 +260,7 @@ const CardModule = {
 
     // Add next button
     this.addPaginationButton(
-      '<i class="fas fa-chevron-right"></i>', 
+      '<i class="fas fa-chevron-right"></i>',
       AppState.currentPage === total,
       () => {
         AppState.currentPage++;
@@ -282,17 +289,17 @@ const CardModule = {
     const button = document.createElement("button");
     button.textContent = number;
     button.className = "page-btn";
-    
+
     if (number === AppState.currentPage) {
       button.classList.add("active");
     }
-    
+
     button.onclick = () => {
       AppState.currentPage = number;
       this.showPage(number);
       this.renderPagination();
     };
-    
+
     DOM.paginationContainer.appendChild(button);
   },
 
@@ -300,10 +307,10 @@ const CardModule = {
    * Initialize card event listeners
    */
   initCardEvents() {
-    document.querySelectorAll(".view-details-btn").forEach(btn => {
+    document.querySelectorAll(".view-details-btn").forEach((btn) => {
       ModalModule.initModal(btn);
     });
-  }
+  },
 };
 
 // =================== MODAL MODULE ===================
@@ -314,30 +321,30 @@ const ModalModule = {
   initModal(btn) {
     btn.addEventListener("click", () => {
       const card = btn.closest(".card-item");
-      
+
       // Set up modal data
       AppState.modalImageList = card.dataset.images.split(",");
       AppState.currentImageIndex = 0;
       AppState.savedScrollPosition = window.scrollY;
-      
+
       // Update modal content
       this.updateModalContent(card);
       this.buildThumbs();
-      
+
       // Show modal
       DOM.modalOverlay.style.display = "flex";
-      
+
       // Disable body scrolling but keep position
       DOM.body.style.overflow = "hidden";
       DOM.body.style.position = "fixed";
       DOM.body.style.top = `-${AppState.savedScrollPosition}px`;
       DOM.body.style.width = "100%";
-      
+
       // Set up modal interactions
       this.startSlide();
       this.setupImagePauseEvents();
       Helpers.trapFocus(DOM.modalOverlay);
-      
+
       // Update URL
       const slug = card.dataset.projectSlug;
       history.replaceState(
@@ -355,13 +362,14 @@ const ModalModule = {
     DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
     DOM.modalTitle.textContent = card.querySelector(".card-title").textContent;
     DOM.modalTags.textContent = card.querySelector(".card-tags").textContent;
-    DOM.modalDescription.textContent = card.querySelector(".card-description").textContent;
-    
+    DOM.modalDescription.textContent =
+      card.querySelector(".card-description").textContent;
+
     // Set up links
     const links = card.querySelectorAll(".card-link-item");
     DOM.modalBtn1.href = links[0]?.href || "#";
     DOM.modalBtn2.href = links[1]?.href || "#";
-    
+
     this.highlightThumb(AppState.currentImageIndex);
   },
 
@@ -370,32 +378,32 @@ const ModalModule = {
    */
   buildThumbs() {
     if (!DOM.thumbsWrapper) return;
-    
+
     DOM.thumbsWrapper.innerHTML = "";
-    
+
     AppState.modalImageList.forEach((src, i) => {
       const thumb = document.createElement("img");
       thumb.src = src;
       thumb.loading = "lazy";
       thumb.className = "modal-thumb";
       thumb.dataset.index = i;
-      
+
       thumb.onclick = () => {
         this.pauseSlide();
         AppState.currentImageIndex = i;
         DOM.modalImg.src = src;
         this.highlightThumb(i);
-        
+
         clearTimeout(AppState.resumeTimeout);
         AppState.resumeTimeout = setTimeout(
-          () => this.resumeSlide(), 
+          () => this.resumeSlide(),
           CONFIG.resumeSlideTimeout
         );
       };
-      
+
       DOM.thumbsWrapper.appendChild(thumb);
     });
-    
+
     this.highlightThumb(AppState.currentImageIndex);
   },
 
@@ -404,8 +412,8 @@ const ModalModule = {
    */
   highlightThumb(index) {
     if (!DOM.thumbsWrapper) return;
-    
-    DOM.thumbsWrapper.querySelectorAll(".modal-thumb").forEach(thumb => {
+
+    DOM.thumbsWrapper.querySelectorAll(".modal-thumb").forEach((thumb) => {
       thumb.classList.toggle("active", Number(thumb.dataset.index) === index);
     });
   },
@@ -416,7 +424,7 @@ const ModalModule = {
   startSlide() {
     clearInterval(AppState.autoSlideInterval);
     AppState.autoSlideInterval = setInterval(
-      () => this.nextImage(), 
+      () => this.nextImage(),
       CONFIG.autoSlideInterval
     );
   },
@@ -443,7 +451,8 @@ const ModalModule = {
    * Go to next image
    */
   nextImage() {
-    AppState.currentImageIndex = (AppState.currentImageIndex + 1) % AppState.modalImageList.length;
+    AppState.currentImageIndex =
+      (AppState.currentImageIndex + 1) % AppState.modalImageList.length;
     DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
     this.highlightThumb(AppState.currentImageIndex);
   },
@@ -452,10 +461,10 @@ const ModalModule = {
    * Go to previous image
    */
   prevImage() {
-    AppState.currentImageIndex = (
-      AppState.currentImageIndex - 1 + AppState.modalImageList.length
-    ) % AppState.modalImageList.length;
-    
+    AppState.currentImageIndex =
+      (AppState.currentImageIndex - 1 + AppState.modalImageList.length) %
+      AppState.modalImageList.length;
+
     DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
     this.highlightThumb(AppState.currentImageIndex);
   },
@@ -500,16 +509,16 @@ const ModalModule = {
     clearInterval(AppState.autoSlideInterval);
     AppState.isSlideHeld = false;
     this.cleanupImagePauseEvents();
-    
+
     // Restore body scrolling
     DOM.body.style.overflow = "";
     DOM.body.style.position = "";
     DOM.body.style.top = "";
     DOM.body.style.width = "";
-    
+
     // Restore scroll position
     window.scrollTo(0, AppState.savedScrollPosition);
-    
+
     // Update URL
     const url = new URL(window.location.href);
     url.hash = "";
@@ -522,45 +531,57 @@ const ModalModule = {
   setupModalEvents() {
     // Close button
     DOM.modalClose.addEventListener("click", () => this.closeModal());
-    
+
     // Navigation buttons
     DOM.prevBtn.addEventListener("click", () => {
       this.pauseSlide();
       this.prevImage();
       clearTimeout(AppState.resumeTimeout);
-      AppState.resumeTimeout = setTimeout(() => this.resumeSlide(), CONFIG.resumeSlideTimeout);
+      AppState.resumeTimeout = setTimeout(
+        () => this.resumeSlide(),
+        CONFIG.resumeSlideTimeout
+      );
     });
-    
+
     DOM.nextBtn.addEventListener("click", () => {
       this.pauseSlide();
       this.nextImage();
       clearTimeout(AppState.resumeTimeout);
-      AppState.resumeTimeout = setTimeout(() => this.resumeSlide(), CONFIG.resumeSlideTimeout);
+      AppState.resumeTimeout = setTimeout(
+        () => this.resumeSlide(),
+        CONFIG.resumeSlideTimeout
+      );
     });
-    
+
     // Keyboard navigation
     window.addEventListener("keydown", (e) => {
       // Close on Escape
       if (e.key === "Escape") this.closeModal();
-      
+
       // Navigation with arrow keys when modal is open
       if (DOM.modalOverlay.style.display === "flex") {
         if (e.key === "ArrowLeft") {
           this.pauseSlide();
           this.prevImage();
           clearTimeout(AppState.resumeTimeout);
-          AppState.resumeTimeout = setTimeout(() => this.resumeSlide(), CONFIG.resumeSlideTimeout);
+          AppState.resumeTimeout = setTimeout(
+            () => this.resumeSlide(),
+            CONFIG.resumeSlideTimeout
+          );
         }
-        
+
         if (e.key === "ArrowRight") {
           this.pauseSlide();
           this.nextImage();
           clearTimeout(AppState.resumeTimeout);
-          AppState.resumeTimeout = setTimeout(() => this.resumeSlide(), CONFIG.resumeSlideTimeout);
+          AppState.resumeTimeout = setTimeout(
+            () => this.resumeSlide(),
+            CONFIG.resumeSlideTimeout
+          );
         }
       }
     });
-  }
+  },
 };
 
 // =================== NAVIGATION MODULE ===================
@@ -575,10 +596,10 @@ const NavigationModule = {
     });
 
     // Navigation links
-    DOM.navLinks.forEach(link => {
+    DOM.navLinks.forEach((link) => {
       link.addEventListener("click", () => {
         DOM.body.classList.remove("mobile-menu-open");
-        DOM.navLinks.forEach(l => l.classList.remove("active"));
+        DOM.navLinks.forEach((l) => l.classList.remove("active"));
         link.classList.add("active");
       });
     });
@@ -606,7 +627,7 @@ const NavigationModule = {
     const activeLink = document.querySelector(`.nav-link[href="${hash}"]`);
 
     if (activeLink) {
-      DOM.navLinks.forEach(link => link.classList.remove("active"));
+      DOM.navLinks.forEach((link) => link.classList.remove("active"));
       activeLink.classList.add("active");
     }
   },
@@ -620,13 +641,14 @@ const NavigationModule = {
 
       window.requestAnimationFrame(() => {
         const scrollPosition = window.scrollY;
-        
+
         // Update active nav link based on scroll position
         this.updateActiveNavOnScroll(scrollPosition);
-        
+
         // Toggle scroll-to-top button visibility
         if (DOM.scrollToTopBtn) {
-          DOM.scrollToTopBtn.style.display = scrollPosition > 300 ? "block" : "none";
+          DOM.scrollToTopBtn.style.display =
+            scrollPosition > 300 ? "block" : "none";
         }
       });
     });
@@ -638,7 +660,7 @@ const NavigationModule = {
   updateActiveNavOnScroll(scrollPosition) {
     let currentSection = "";
 
-    document.querySelectorAll("section[id]").forEach(section => {
+    document.querySelectorAll("section[id]").forEach((section) => {
       const sectionTop = section.offsetTop - 100;
       const sectionHeight = section.offsetHeight;
 
@@ -656,7 +678,7 @@ const NavigationModule = {
       );
 
       if (shouldBeActive && !shouldBeActive.classList.contains("active")) {
-        DOM.navLinks.forEach(link => link.classList.remove("active"));
+        DOM.navLinks.forEach((link) => link.classList.remove("active"));
         shouldBeActive.classList.add("active");
       }
     }
@@ -666,24 +688,24 @@ const NavigationModule = {
    * Initialize smooth scrolling for internal links
    */
   initSmoothScrolling() {
-    DOM.internalLinks.forEach(link => {
+    DOM.internalLinks.forEach((link) => {
       // Skip modal buttons
       if (link.closest(".modal-buttons")) {
         return;
       }
 
-      link.addEventListener("click", function(e) {
+      link.addEventListener("click", function (e) {
         e.preventDefault();
 
         const targetId = this.getAttribute("href");
-        
+
         if (targetId !== "#") {
           const targetElement = document.querySelector(targetId);
-          
+
           if (targetElement) {
             window.scrollTo({
               top: targetElement.offsetTop - CONFIG.scrollOffset,
-              behavior: "smooth"
+              behavior: "smooth",
             });
 
             history.pushState(null, null, targetId);
@@ -697,11 +719,11 @@ const NavigationModule = {
       DOM.scrollToTopBtn.addEventListener("click", () => {
         window.scrollTo({
           top: 0,
-          behavior: "smooth"
+          behavior: "smooth",
         });
       });
     }
-  }
+  },
 };
 
 // =================== ANIMATION MODULE ===================
@@ -717,7 +739,7 @@ const AnimationModule = {
       "UI/UX Designer",
       "Graphic Designer",
       "Content Creator",
-      "Software Engineer"
+      "Software Engineer",
     ];
 
     let currentProfessionIndex = 0;
@@ -730,12 +752,18 @@ const AnimationModule = {
 
       if (isDeleting) {
         // Deleting characters
-        DOM.professionText.textContent = currentProfession.substring(0, currentCharIndex - 1);
+        DOM.professionText.textContent = currentProfession.substring(
+          0,
+          currentCharIndex - 1
+        );
         currentCharIndex--;
         typingSpeed = CONFIG.typewriterDeleteSpeed;
       } else {
         // Adding characters
-        DOM.professionText.textContent = currentProfession.substring(0, currentCharIndex + 1);
+        DOM.professionText.textContent = currentProfession.substring(
+          0,
+          currentCharIndex + 1
+        );
         currentCharIndex++;
         typingSpeed = CONFIG.typewriterSpeed;
       }
@@ -744,11 +772,12 @@ const AnimationModule = {
       if (!isDeleting && currentCharIndex === currentProfession.length) {
         isDeleting = true;
         typingSpeed = CONFIG.typewriterPause;
-      } 
+      }
       // Word fully deleted - move to next word
       else if (isDeleting && currentCharIndex === 0) {
         isDeleting = false;
-        currentProfessionIndex = (currentProfessionIndex + 1) % professions.length;
+        currentProfessionIndex =
+          (currentProfessionIndex + 1) % professions.length;
         typingSpeed = CONFIG.typewriterDelay;
       }
 
@@ -765,7 +794,7 @@ const AnimationModule = {
     if (DOM.yearSpan) {
       DOM.yearSpan.textContent = new Date().getFullYear();
     }
-  }
+  },
 };
 
 // =================== ROUTING MODULE ===================
@@ -776,10 +805,10 @@ const RoutingModule = {
   initRouting() {
     // Check for project hash on load
     const hash = window.location.hash;
-    
+
     if (hash.startsWith("#projects/")) {
       const slug = hash.slice(10); // Remove "#projects/"
-      
+
       this.handleProjectRoute(slug);
     }
 
@@ -788,7 +817,7 @@ const RoutingModule = {
       if (e.state && e.state.slug) {
         const slug = e.state.slug;
         const savedScroll = e.state.scrollY || 0;
-        
+
         // Only handle if modal is not already open
         if (DOM.modalOverlay.style.display !== "flex") {
           AppState.savedScrollPosition = savedScroll;
@@ -804,14 +833,14 @@ const RoutingModule = {
    * Handle project route - open modal for given slug
    */
   handleProjectRoute(slug, useDelay = true) {
-    const card = AppState.cards.find(c => c.dataset.projectSlug === slug);
-    
+    const card = AppState.cards.find((c) => c.dataset.projectSlug === slug);
+
     if (card) {
       const openModal = () => {
         const btn = card.querySelector(".view-details-btn");
         if (btn) btn.click();
       };
-      
+
       // Add delay when page is loading to ensure all elements are ready
       if (useDelay) {
         setTimeout(openModal, 500);
@@ -819,7 +848,7 @@ const RoutingModule = {
         openModal();
       }
     }
-  }
+  },
 };
 
 // =================== EVENT LISTENERS ===================
@@ -828,21 +857,21 @@ const EventModule = {
    * Set up filter button event listeners
    */
   setupFilterButtons() {
-    DOM.filterButtons.forEach(button => {
+    DOM.filterButtons.forEach((button) => {
       if (!button.classList.contains("active")) {
         button.setAttribute("aria-pressed", "false");
       }
-      
+
       button.addEventListener("click", () => {
         // Update active state
-        DOM.filterButtons.forEach(btn => {
+        DOM.filterButtons.forEach((btn) => {
           btn.classList.remove("active");
           btn.setAttribute("aria-pressed", "false");
         });
-        
+
         button.classList.add("active");
         button.setAttribute("aria-pressed", "true");
-        
+
         // Filter cards
         CardModule.filterCards(button.dataset.filter);
       });
@@ -855,15 +884,70 @@ const EventModule = {
   setupAllEventListeners() {
     // Set up filter buttons
     this.setupFilterButtons();
-    
+
     // Set up modal events
     ModalModule.setupModalEvents();
-    
+
     // Reset scroll position on page load
     window.addEventListener("load", () => {
       window.scrollTo(0, 0);
     });
-  }
+  },
+};
+
+// =================== SCROLL REVEAL MODULE ===================
+const ScrollRevealModule = {
+  /**
+   * Initialize scroll reveal functionality
+   */
+  init() {
+    // Get all sections to animate
+    const sections = document.querySelectorAll("section");
+
+    // Set up the Intersection Observer
+    const observer = new IntersectionObserver(this.handleIntersect, {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0.15, // Trigger when 15% of the section is visible
+    });
+
+    // Observe each section
+    sections.forEach((section) => {
+      observer.observe(section);
+
+      // Hide section content initially
+      section.classList.add("reveal-section");
+
+      // Find elements to animate inside section
+      const elementsToAnimate = section.querySelectorAll(".reveal-item");
+      elementsToAnimate.forEach((el) => {
+        el.classList.add("reveal-hidden");
+      });
+    });
+  },
+
+  /**
+   * Handle intersection events
+   */
+  handleIntersect(entries, observer) {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        // Add visible class to section
+        entry.target.classList.add("reveal-visible");
+
+        // Animate children with delay
+        const elementsToAnimate = entry.target.querySelectorAll(".reveal-item");
+        elementsToAnimate.forEach((el, index) => {
+          setTimeout(() => {
+            el.classList.add("reveal-visible");
+          }, 100 * (index + 1)); // Stagger effect
+        });
+
+        // Unobserve section once revealed
+        observer.unobserve(entry.target);
+      }
+    });
+  },
 };
 
 // =================== INITIALIZATION ===================
@@ -880,6 +964,9 @@ function init() {
   // Initialize animations
   AnimationModule.initTypewriter();
   AnimationModule.updateCopyrightYear();
+
+  // Initialize scroll reveal animations
+  ScrollRevealModule.init();
 
   // Set up routing
   RoutingModule.initRouting();

@@ -30,7 +30,7 @@ export const cardsData = [
     description: "A RESTful API for managing user data.",
     category: "backend",
     images: [
-      "./assets/images/sample1.png",
+      "./assets/images/sample2.png",
       "./assets/images/sample2.png",
       "./assets/images/sample3.png",
       "./assets/images/sample4.png",
@@ -49,7 +49,7 @@ export const cardsData = [
     description: "A mobile app for fitness tracking and nutrition logs.",
     category: "mobile",
     images: [
-      "./assets/images/sample1.png",
+      "./assets/images/sample3.png",
       "./assets/images/sample2.png",
       "./assets/images/sample3.png",
       "./assets/images/sample4.png",
@@ -68,7 +68,7 @@ export const cardsData = [
     description: "An example web app built with Vue.js and Firebase.",
     category: "web",
     images: [
-      "./assets/images/sample1.png",
+      "./assets/images/sample4.png",
       "./assets/images/sample2.png",
       "./assets/images/sample3.png",
       "./assets/images/sample4.png",
@@ -87,7 +87,7 @@ export const cardsData = [
     description: "A backend service using Django REST framework.",
     category: "backend",
     images: [
-      "./assets/images/sample1.png",
+      "./assets/images/sample5.png",
       "./assets/images/sample2.png",
       "./assets/images/sample3.png",
       "./assets/images/sample4.png",
@@ -106,7 +106,7 @@ export const cardsData = [
     description: "A cross-platform mobile app for task management.",
     category: "mobile",
     images: [
-      "./assets/images/sample1.png",
+      "./assets/images/sample6.png",
       "./assets/images/sample2.png",
       "./assets/images/sample3.png",
       "./assets/images/sample4.png",

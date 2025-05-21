@@ -26,6 +26,14 @@ const CONFIG = {
   typewriterDeleteSpeed: 50,
   typewriterPause: 1500,
   typewriterDelay: 300,
+
+  // Performance
+  debounceDelay: 150,
+  animationStaggerDelay: 100,
+
+  scrollDelay: 50,
+  scrollAttempts: 3,
+  scrollInterval: 100,
 };
 
 // =================== APP STATE ===================
@@ -43,6 +51,10 @@ const AppState = {
   resumeTimeout: null,
   savedScrollPosition: 0,
 
+  // Scroll
+  isScrolling: false,
+  scrollTimeout: null,
+
   // Reset all state
   reset() {
     this.cards = [];
@@ -51,8 +63,10 @@ const AppState = {
     this.modalImageList = [];
     this.currentImageIndex = 0;
     this.isSlideHeld = false;
+    this.isScrolling = false;
     clearInterval(this.autoSlideInterval);
     clearTimeout(this.resumeTimeout);
+    clearTimeout(this.scrollTimeout);
   },
 };
 
@@ -88,6 +102,15 @@ const DOM = {
   // Animation elements
   professionText: document.getElementById("profession-text"),
   yearSpan: document.getElementById("current-year"),
+
+  // Lazily initialize and cache selectors that might not be available immediately
+  getElements(selector) {
+    return document.querySelectorAll(selector);
+  },
+
+  getElement(selector) {
+    return document.querySelector(selector);
+  },
 };
 
 // =================== HELPER FUNCTIONS ===================
@@ -115,17 +138,70 @@ const Helpers = {
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
 
-    element.addEventListener("keydown", (e) => {
-      if (e.key === "Tab") {
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    });
+    element.addEventListener("keydown", this.handleFocusTrap);
+
+    // Store references for cleanup
+    element.focusTrapData = { first, last };
+  },
+
+  /**
+   * Event handler for focus trap navigation
+   */
+  handleFocusTrap(e) {
+    if (e.key !== "Tab") return;
+
+    const { first, last } = e.currentTarget.focusTrapData || {};
+    if (!first || !last) return;
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  },
+
+  /**
+   * Removes focus trap event listeners
+   */
+  removeFocusTrap(element) {
+    if (element) {
+      element.removeEventListener("keydown", this.handleFocusTrap);
+      element.focusTrapData = null;
+    }
+  },
+
+  /**
+   * Debounce function for performance optimization
+   */
+  debounce(func, delay = CONFIG.debounceDelay) {
+    let timer;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        func.apply(this, args);
+      }, delay);
+    };
+  },
+
+  /**
+   * Safely parse JSON with error handling
+   */
+  safeJSONParse(str, fallback = {}) {
+    try {
+      return JSON.parse(str);
+    } catch (err) {
+      console.error("JSON parsing error:", err);
+      return fallback;
+    }
+  },
+
+  /**
+   * Log errors with consistent formatting
+   */
+  logError(component, message, error) {
+    console.error(`[${component}] ${message}`, error);
   },
 };
 
@@ -135,139 +211,170 @@ const CardModule = {
    * Creates cards from data and adds them to the grid
    */
   createCards() {
-    DOM.cardsGrid.innerHTML = "";
+    try {
+      if (!DOM.cardsGrid) return;
 
-    cardsData.forEach((item) => {
-      const card = document.createElement("div");
-      card.className = "card-item";
-      card.dataset.category = item.category;
-      card.dataset.images = (
-        item.images.length > 0 ? item.images : [CONFIG.fallbackImage]
-      ).join(",");
-      card.dataset.projectSlug = item.slug;
+      DOM.cardsGrid.innerHTML = "";
+      const fragment = document.createDocumentFragment();
 
-      const links = item.links
-        .map(
-          (link) =>
-            `<a href="${link.url}" target="_blank" class="card-link-item">
-            <i class="${link.icon}"></i>
-          </a>`
-        )
-        .join("");
+      cardsData.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "card-item";
+        card.dataset.category = item.category;
+        card.dataset.images = (
+          item.images.length > 0 ? item.images : [CONFIG.fallbackImage]
+        ).join(",");
+        card.dataset.projectSlug = item.slug;
 
-      card.innerHTML = `
-        <div class="card-image">
-          <img src="${item.images[0] || CONFIG.fallbackImage}" alt="${
-        item.title
-      }" loading="lazy" />
-          <div class="card-overlay">
-            <div class="card-links">${links}</div>
+        const links = item.links
+          .map(
+            (link) =>
+              `<a href="${link.url}" target="_blank" class="card-link-item">
+              <i class="${link.icon}"></i>
+            </a>`
+          )
+          .join("");
+
+        card.innerHTML = `
+          <div class="card-image">
+            <img src="${item.images[0] || CONFIG.fallbackImage}" alt="${
+          item.title
+        }" loading="lazy" />
+            <div class="card-overlay">
+              <div class="card-links">${links}</div>
+            </div>
           </div>
-        </div>
-        <div class="card-info">
-          <h3 class="card-title">${item.title}</h3>
-          <p class="card-tags">${item.tags}</p>
-          <p class="card-description">${item.description}</p>
-          <button class="view-details-btn">View Details</button>
-        </div>`;
+          <div class="card-info">
+            <h3 class="card-title">${item.title}</h3>
+            <p class="card-tags">${item.tags}</p>
+            <p class="card-description">${item.description}</p>
+            <button class="view-details-btn">View Details</button>
+          </div>`;
 
-      DOM.cardsGrid.appendChild(card);
-    });
+        fragment.appendChild(card);
+      });
 
-    AppState.cards = Array.from(document.querySelectorAll(".card-item"));
-    AppState.filteredCards = [...AppState.cards];
+      DOM.cardsGrid.appendChild(fragment);
+      AppState.cards = Array.from(document.querySelectorAll(".card-item"));
+      AppState.filteredCards = [...AppState.cards];
+    } catch (error) {
+      Helpers.logError("CardModule", "Error creating cards:", error);
+    }
   },
 
   /**
    * Filters cards by category
    */
   filterCards(filter) {
-    AppState.filteredCards = AppState.cards.filter(
-      (card) => filter === "all" || card.dataset.category === filter
-    );
+    try {
+      AppState.filteredCards = AppState.cards.filter(
+        (card) => filter === "all" || card.dataset.category === filter
+      );
 
-    AppState.currentPage = 1;
-    this.renderPagination();
-    this.showPage(1);
+      AppState.currentPage = 1;
+      this.renderPagination();
+      this.showPage(1);
+    } catch (error) {
+      Helpers.logError("CardModule", "Error filtering cards:", error);
+      // Fallback to showing all cards
+      AppState.filteredCards = [...AppState.cards];
+      this.showPage(1);
+    }
   },
 
   /**
    * Shows cards for current page
    */
   showPage(page) {
-    AppState.cards.forEach((card) => {
-      card.style.display = "none";
-      card.classList.add("hide");
-    });
-
-    const start = (page - 1) * CONFIG.cardsPerPage;
-    AppState.filteredCards
-      .slice(start, start + CONFIG.cardsPerPage)
-      .forEach((card) => {
-        card.style.display = "flex";
-        setTimeout(() => card.classList.remove("hide"), 50);
+    try {
+      AppState.cards.forEach((card) => {
+        card.style.display = "none";
+        card.classList.add("hide");
       });
+
+      const start = (page - 1) * CONFIG.cardsPerPage;
+      AppState.filteredCards
+        .slice(start, start + CONFIG.cardsPerPage)
+        .forEach((card, index) => {
+          card.style.display = "flex";
+          // Staggered animation for smoother appearance
+          setTimeout(() => card.classList.remove("hide"), 50 + index * 20);
+        });
+    } catch (error) {
+      Helpers.logError("CardModule", "Error showing page:", error);
+    }
   },
 
   /**
    * Renders pagination controls
    */
   renderPagination() {
-    const total = Math.ceil(
-      AppState.filteredCards.length / CONFIG.cardsPerPage
-    );
-    DOM.paginationContainer.innerHTML = "";
+    try {
+      if (!DOM.paginationContainer) return;
 
-    // No pagination needed if only one page
-    if (total <= 1) return;
+      const total = Math.ceil(
+        AppState.filteredCards.length / CONFIG.cardsPerPage
+      );
+      DOM.paginationContainer.innerHTML = "";
 
-    // Add previous button
-    this.addPaginationButton(
-      '<i class="fas fa-chevron-left"></i>',
-      AppState.currentPage === 1,
-      () => {
-        AppState.currentPage--;
-        this.showPage(AppState.currentPage);
-        this.renderPagination();
+      // No pagination needed if only one page
+      if (total <= 1) return;
+
+      // Add previous button
+      this.addPaginationButton(
+        '<i class="fas fa-chevron-left"></i>',
+        AppState.currentPage === 1,
+        () => {
+          if (AppState.currentPage > 1) {
+            AppState.currentPage--;
+            this.showPage(AppState.currentPage);
+            this.renderPagination();
+          }
+        }
+      );
+
+      // Calculate page numbers to show
+      const maxPages = 3;
+      let start = Math.max(1, AppState.currentPage - Math.floor(maxPages / 2));
+      let end = Math.min(total, start + maxPages - 1);
+
+      if (end - start + 1 < maxPages) {
+        start = Math.max(1, end - maxPages + 1);
       }
-    );
 
-    // Calculate page numbers to show
-    const maxPages = 3;
-    let start = Math.max(1, AppState.currentPage - Math.floor(maxPages / 2));
-    let end = Math.min(total, start + maxPages - 1);
-
-    if (end - start + 1 < maxPages) {
-      start = Math.max(1, end - maxPages + 1);
-    }
-
-    // Add first page + dots if needed
-    if (start > 1) {
-      this.addPageButton(1);
-      if (start > 2) DOM.paginationContainer.append(Helpers.createDots());
-    }
-
-    // Add page numbers
-    for (let i = start; i <= end; i++) {
-      this.addPageButton(i);
-    }
-
-    // Add dots + last page if needed
-    if (end < total) {
-      if (end < total - 1) DOM.paginationContainer.append(Helpers.createDots());
-      this.addPageButton(total);
-    }
-
-    // Add next button
-    this.addPaginationButton(
-      '<i class="fas fa-chevron-right"></i>',
-      AppState.currentPage === total,
-      () => {
-        AppState.currentPage++;
-        this.showPage(AppState.currentPage);
-        this.renderPagination();
+      // Add first page + dots if needed
+      if (start > 1) {
+        this.addPageButton(1);
+        if (start > 2) DOM.paginationContainer.append(Helpers.createDots());
       }
-    );
+
+      // Add page numbers
+      for (let i = start; i <= end; i++) {
+        this.addPageButton(i);
+      }
+
+      // Add dots + last page if needed
+      if (end < total) {
+        if (end < total - 1)
+          DOM.paginationContainer.append(Helpers.createDots());
+        this.addPageButton(total);
+      }
+
+      // Add next button
+      this.addPaginationButton(
+        '<i class="fas fa-chevron-right"></i>',
+        AppState.currentPage === total,
+        () => {
+          if (AppState.currentPage < total) {
+            AppState.currentPage++;
+            this.showPage(AppState.currentPage);
+            this.renderPagination();
+          }
+        }
+      );
+    } catch (error) {
+      Helpers.logError("CardModule", "Error rendering pagination:", error);
+    }
   },
 
   /**
@@ -278,8 +385,10 @@ const CardModule = {
     button.innerHTML = html;
     button.className = "page-btn";
     button.disabled = disabled;
+    button.setAttribute("aria-disabled", disabled ? "true" : "false");
     button.onclick = callback;
     DOM.paginationContainer.appendChild(button);
+    return button;
   },
 
   /**
@@ -289,9 +398,11 @@ const CardModule = {
     const button = document.createElement("button");
     button.textContent = number;
     button.className = "page-btn";
+    button.setAttribute("aria-label", `Sayfa ${number}`);
 
     if (number === AppState.currentPage) {
       button.classList.add("active");
+      button.setAttribute("aria-current", "page");
     }
 
     button.onclick = () => {
@@ -301,26 +412,59 @@ const CardModule = {
     };
 
     DOM.paginationContainer.appendChild(button);
+    return button;
   },
 
   /**
-   * Initialize card event listeners
+   * Initialize card event listeners using event delegation
    */
   initCardEvents() {
-    document.querySelectorAll(".view-details-btn").forEach((btn) => {
-      ModalModule.initModal(btn);
-    });
+    try {
+      // Use event delegation for better performance
+      DOM.cardsGrid.addEventListener("click", (e) => {
+        const detailsBtn = e.target.closest(".view-details-btn");
+        if (detailsBtn) {
+          ModalModule.openModalFromCard(detailsBtn.closest(".card-item"));
+        }
+      });
+    } catch (error) {
+      Helpers.logError("CardModule", "Error initializing card events:", error);
+    }
   },
 };
 
 // =================== MODAL MODULE ===================
 const ModalModule = {
+  // Store bound handlers for proper event cleanup
+  boundHandlers: {
+    keydownHandler: null,
+    pauseSlide: null,
+    handleMouseUp: null,
+  },
+
   /**
-   * Initialize the modal for a card
+   * Initialize the modal system
    */
-  initModal(btn) {
-    btn.addEventListener("click", () => {
-      const card = btn.closest(".card-item");
+  init() {
+    try {
+      // Bind event handlers once to allow proper removal
+      this.boundHandlers.keydownHandler = this.handleKeydown.bind(this);
+      this.boundHandlers.pauseSlide = this.pauseSlide.bind(this);
+      this.boundHandlers.handleMouseUp = this.handleMouseUp.bind(this);
+
+      // Set up main modal event listeners
+      this.setupModalEvents();
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error initializing modal:", error);
+    }
+  },
+
+  /**
+   * Open modal from a card element
+   */
+  openModalFromCard(card) {
+    try {
+      if (!card || !DOM.modalOverlay) return;
 
       // Set up modal data
       AppState.modalImageList = card.dataset.images.split(",");
@@ -345,6 +489,9 @@ const ModalModule = {
       this.setupImagePauseEvents();
       Helpers.trapFocus(DOM.modalOverlay);
 
+      // Add keyboard navigation
+      window.addEventListener("keydown", this.boundHandlers.keydownHandler);
+
       // Update URL
       const slug = card.dataset.projectSlug;
       history.replaceState(
@@ -352,70 +499,148 @@ const ModalModule = {
         "",
         `#projects/${slug}`
       );
-    });
+
+      // Set focus to close button for accessibility
+      setTimeout(() => {
+        DOM.modalClose?.focus();
+      }, 100);
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error opening modal:", error);
+    }
   },
 
   /**
    * Update modal content with card data
    */
   updateModalContent(card) {
-    DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
-    DOM.modalTitle.textContent = card.querySelector(".card-title").textContent;
-    DOM.modalTags.textContent = card.querySelector(".card-tags").textContent;
-    DOM.modalDescription.textContent =
-      card.querySelector(".card-description").textContent;
+    try {
+      if (!DOM.modalImg || !card) return;
 
-    // Set up links
-    const links = card.querySelectorAll(".card-link-item");
-    DOM.modalBtn1.href = links[0]?.href || "#";
-    DOM.modalBtn2.href = links[1]?.href || "#";
+      DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
+      DOM.modalImg.alt =
+        card.querySelector(".card-title")?.textContent || "Project image";
 
-    this.highlightThumb(AppState.currentImageIndex);
+      if (DOM.modalTitle) {
+        DOM.modalTitle.textContent =
+          card.querySelector(".card-title")?.textContent || "";
+      }
+
+      if (DOM.modalTags) {
+        DOM.modalTags.textContent =
+          card.querySelector(".card-tags")?.textContent || "";
+      }
+
+      if (DOM.modalDescription) {
+        DOM.modalDescription.textContent =
+          card.querySelector(".card-description")?.textContent || "";
+      }
+
+      // Set up links
+      const links = card.querySelectorAll(".card-link-item");
+      if (DOM.modalBtn1 && links[0]) {
+        DOM.modalBtn1.href = links[0].href || "#";
+        DOM.modalBtn1.setAttribute(
+          "aria-label",
+          `Live Demo for ${DOM.modalTitle.textContent}`
+        );
+      }
+
+      if (DOM.modalBtn2 && links[1]) {
+        DOM.modalBtn2.href = links[1].href || "#";
+        DOM.modalBtn2.setAttribute(
+          "aria-label",
+          `Source Code for ${DOM.modalTitle.textContent}`
+        );
+      }
+
+      this.highlightThumb(AppState.currentImageIndex);
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error updating modal content:", error);
+    }
   },
 
   /**
    * Build thumbnail images
    */
   buildThumbs() {
-    if (!DOM.thumbsWrapper) return;
+    try {
+      if (!DOM.thumbsWrapper) return;
 
-    DOM.thumbsWrapper.innerHTML = "";
+      DOM.thumbsWrapper.innerHTML = "";
+      const fragment = document.createDocumentFragment();
 
-    AppState.modalImageList.forEach((src, i) => {
-      const thumb = document.createElement("img");
-      thumb.src = src;
-      thumb.loading = "lazy";
-      thumb.className = "modal-thumb";
-      thumb.dataset.index = i;
-
-      thumb.onclick = () => {
-        this.pauseSlide();
-        AppState.currentImageIndex = i;
-        DOM.modalImg.src = src;
-        this.highlightThumb(i);
-
-        clearTimeout(AppState.resumeTimeout);
-        AppState.resumeTimeout = setTimeout(
-          () => this.resumeSlide(),
-          CONFIG.resumeSlideTimeout
+      AppState.modalImageList.forEach((src, i) => {
+        const thumb = document.createElement("img");
+        thumb.src = src;
+        thumb.loading = "lazy";
+        thumb.className = "modal-thumb";
+        thumb.dataset.index = i;
+        thumb.setAttribute(
+          "aria-label",
+          `Image ${i + 1} of ${AppState.modalImageList.length}`
         );
-      };
+        thumb.setAttribute("role", "tab");
+        thumb.setAttribute("tabindex", "0");
+        thumb.setAttribute(
+          "aria-selected",
+          i === AppState.currentImageIndex ? "true" : "false"
+        );
 
-      DOM.thumbsWrapper.appendChild(thumb);
-    });
+        thumb.onclick = () => this.switchToImage(i);
 
-    this.highlightThumb(AppState.currentImageIndex);
+        // Add keyboard accessibility
+        thumb.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            this.switchToImage(i);
+          }
+        });
+
+        fragment.appendChild(thumb);
+      });
+
+      DOM.thumbsWrapper.appendChild(fragment);
+      this.highlightThumb(AppState.currentImageIndex);
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error building thumbnails:", error);
+    }
+  },
+
+  /**
+   * Switch to a specific image
+   */
+  switchToImage(index) {
+    this.pauseSlide();
+    AppState.currentImageIndex = index;
+
+    if (DOM.modalImg) {
+      DOM.modalImg.src = AppState.modalImageList[index];
+    }
+
+    this.highlightThumb(index);
+
+    clearTimeout(AppState.resumeTimeout);
+    AppState.resumeTimeout = setTimeout(
+      () => this.resumeSlide(),
+      CONFIG.resumeSlideTimeout
+    );
   },
 
   /**
    * Highlight the active thumbnail
    */
   highlightThumb(index) {
-    if (!DOM.thumbsWrapper) return;
+    try {
+      if (!DOM.thumbsWrapper) return;
 
-    DOM.thumbsWrapper.querySelectorAll(".modal-thumb").forEach((thumb) => {
-      thumb.classList.toggle("active", Number(thumb.dataset.index) === index);
-    });
+      DOM.thumbsWrapper.querySelectorAll(".modal-thumb").forEach((thumb) => {
+        const isActive = Number(thumb.dataset.index) === index;
+        thumb.classList.toggle("active", isActive);
+        thumb.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error highlighting thumbnail:", error);
+    }
   },
 
   /**
@@ -451,34 +676,78 @@ const ModalModule = {
    * Go to next image
    */
   nextImage() {
-    AppState.currentImageIndex =
-      (AppState.currentImageIndex + 1) % AppState.modalImageList.length;
-    DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
-    this.highlightThumb(AppState.currentImageIndex);
+    try {
+      AppState.currentImageIndex =
+        (AppState.currentImageIndex + 1) % AppState.modalImageList.length;
+
+      if (DOM.modalImg) {
+        DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
+      }
+
+      this.highlightThumb(AppState.currentImageIndex);
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error navigating to next image:", error);
+    }
   },
 
   /**
    * Go to previous image
    */
   prevImage() {
-    AppState.currentImageIndex =
-      (AppState.currentImageIndex - 1 + AppState.modalImageList.length) %
-      AppState.modalImageList.length;
+    try {
+      AppState.currentImageIndex =
+        (AppState.currentImageIndex - 1 + AppState.modalImageList.length) %
+        AppState.modalImageList.length;
 
-    DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
-    this.highlightThumb(AppState.currentImageIndex);
+      if (DOM.modalImg) {
+        DOM.modalImg.src = AppState.modalImageList[AppState.currentImageIndex];
+      }
+
+      this.highlightThumb(AppState.currentImageIndex);
+    } catch (error) {
+      Helpers.logError(
+        "ModalModule",
+        "Error navigating to previous image:",
+        error
+      );
+    }
   },
 
   /**
    * Set up events to pause/resume slideshow on image interaction
    */
   setupImagePauseEvents() {
-    DOM.modalImg.addEventListener("mousedown", () => this.pauseSlide());
-    DOM.modalImg.addEventListener("mouseup", () => this.handleMouseUp());
-    DOM.modalImg.addEventListener("mouseleave", () => this.handleMouseUp());
-    DOM.modalImg.addEventListener("touchstart", () => this.pauseSlide());
-    DOM.modalImg.addEventListener("touchend", () => this.handleMouseUp());
-    DOM.modalImg.addEventListener("touchcancel", () => this.handleMouseUp());
+    try {
+      if (!DOM.modalImg) return;
+
+      // Remove any existing listeners
+      this.cleanupImagePauseEvents();
+
+      // Add new listeners
+      DOM.modalImg.addEventListener("mousedown", this.boundHandlers.pauseSlide);
+      DOM.modalImg.addEventListener(
+        "mouseup",
+        this.boundHandlers.handleMouseUp
+      );
+      DOM.modalImg.addEventListener(
+        "mouseleave",
+        this.boundHandlers.handleMouseUp
+      );
+      DOM.modalImg.addEventListener(
+        "touchstart",
+        this.boundHandlers.pauseSlide
+      );
+      DOM.modalImg.addEventListener(
+        "touchend",
+        this.boundHandlers.handleMouseUp
+      );
+      DOM.modalImg.addEventListener(
+        "touchcancel",
+        this.boundHandlers.handleMouseUp
+      );
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error setting up image events:", error);
+    }
   },
 
   /**
@@ -490,145 +759,248 @@ const ModalModule = {
   },
 
   /**
+   * Handle keyboard events for modal
+   */
+  handleKeydown(e) {
+    // Close on Escape
+    if (e.key === "Escape") this.closeModal();
+
+    // Navigation with arrow keys when modal is open
+    if (DOM.modalOverlay.style.display === "flex") {
+      if (e.key === "ArrowLeft") {
+        this.handleNavigation(this.prevImage.bind(this));
+      }
+
+      if (e.key === "ArrowRight") {
+        this.handleNavigation(this.nextImage.bind(this));
+      }
+    }
+  },
+
+  /**
+   * Handle navigation actions with consistent behavior
+   */
+  handleNavigation(navigationFunction) {
+    this.pauseSlide();
+    navigationFunction();
+    clearTimeout(AppState.resumeTimeout);
+    AppState.resumeTimeout = setTimeout(
+      () => this.resumeSlide(),
+      CONFIG.resumeSlideTimeout
+    );
+  },
+
+  /**
    * Clean up event listeners when modal closes
    */
   cleanupImagePauseEvents() {
-    DOM.modalImg.removeEventListener("mousedown", () => this.pauseSlide());
-    DOM.modalImg.removeEventListener("mouseup", () => this.handleMouseUp());
-    DOM.modalImg.removeEventListener("mouseleave", () => this.handleMouseUp());
-    DOM.modalImg.removeEventListener("touchstart", () => this.pauseSlide());
-    DOM.modalImg.removeEventListener("touchend", () => this.handleMouseUp());
-    DOM.modalImg.removeEventListener("touchcancel", () => this.handleMouseUp());
+    try {
+      if (!DOM.modalImg) return;
+
+      DOM.modalImg.removeEventListener(
+        "mousedown",
+        this.boundHandlers.pauseSlide
+      );
+      DOM.modalImg.removeEventListener(
+        "mouseup",
+        this.boundHandlers.handleMouseUp
+      );
+      DOM.modalImg.removeEventListener(
+        "mouseleave",
+        this.boundHandlers.handleMouseUp
+      );
+      DOM.modalImg.removeEventListener(
+        "touchstart",
+        this.boundHandlers.pauseSlide
+      );
+      DOM.modalImg.removeEventListener(
+        "touchend",
+        this.boundHandlers.handleMouseUp
+      );
+      DOM.modalImg.removeEventListener(
+        "touchcancel",
+        this.boundHandlers.handleMouseUp
+      );
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error cleaning up image events:", error);
+    }
   },
 
   /**
    * Close the modal
    */
   closeModal() {
-    DOM.modalOverlay.style.display = "none";
-    clearInterval(AppState.autoSlideInterval);
-    AppState.isSlideHeld = false;
-    this.cleanupImagePauseEvents();
+    try {
+      if (!DOM.modalOverlay) return;
 
-    // Restore body scrolling
-    DOM.body.style.overflow = "";
-    DOM.body.style.position = "";
-    DOM.body.style.top = "";
-    DOM.body.style.width = "";
+      DOM.modalOverlay.style.display = "none";
+      clearInterval(AppState.autoSlideInterval);
+      AppState.isSlideHeld = false;
+      this.cleanupImagePauseEvents();
 
-    // Restore scroll position
-    window.scrollTo(0, AppState.savedScrollPosition);
+      // Remove keyboard event listener
+      window.removeEventListener("keydown", this.boundHandlers.keydownHandler);
 
-    // Update URL
-    const url = new URL(window.location.href);
-    url.hash = "";
-    history.replaceState({}, "", url.toString());
+      // Remove focus trap
+      Helpers.removeFocusTrap(DOM.modalOverlay);
+
+      // Restore body scrolling
+      DOM.body.style.overflow = "";
+      DOM.body.style.position = "";
+      DOM.body.style.top = "";
+      DOM.body.style.width = "";
+
+      // Restore scroll position
+      window.scrollTo(0, AppState.savedScrollPosition);
+
+      // Update URL
+      const url = new URL(window.location.href);
+      url.hash = "#projects";
+      history.replaceState({}, "", url.toString());
+
+      // Return focus to the element that opened the modal
+      const activeCardSlug = AppState.cards.find(
+        (card) => card.dataset.projectSlug === window.location.hash.slice(10)
+      );
+      if (activeCardSlug) {
+        const btn = activeCardSlug.querySelector(".view-details-btn");
+        if (btn) btn.focus();
+      }
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error closing modal:", error);
+
+      // Emergency fallback
+      if (DOM.modalOverlay) {
+        DOM.modalOverlay.style.display = "none";
+      }
+
+      DOM.body.style.overflow = "";
+      DOM.body.style.position = "";
+      window.scrollTo(0, 0);
+    }
   },
 
   /**
    * Set up modal navigation events
    */
   setupModalEvents() {
-    // Close button
-    DOM.modalClose.addEventListener("click", () => this.closeModal());
-
-    // Navigation buttons
-    DOM.prevBtn.addEventListener("click", () => {
-      this.pauseSlide();
-      this.prevImage();
-      clearTimeout(AppState.resumeTimeout);
-      AppState.resumeTimeout = setTimeout(
-        () => this.resumeSlide(),
-        CONFIG.resumeSlideTimeout
-      );
-    });
-
-    DOM.nextBtn.addEventListener("click", () => {
-      this.pauseSlide();
-      this.nextImage();
-      clearTimeout(AppState.resumeTimeout);
-      AppState.resumeTimeout = setTimeout(
-        () => this.resumeSlide(),
-        CONFIG.resumeSlideTimeout
-      );
-    });
-
-    // Keyboard navigation
-    window.addEventListener("keydown", (e) => {
-      // Close on Escape
-      if (e.key === "Escape") this.closeModal();
-
-      // Navigation with arrow keys when modal is open
-      if (DOM.modalOverlay.style.display === "flex") {
-        if (e.key === "ArrowLeft") {
-          this.pauseSlide();
-          this.prevImage();
-          clearTimeout(AppState.resumeTimeout);
-          AppState.resumeTimeout = setTimeout(
-            () => this.resumeSlide(),
-            CONFIG.resumeSlideTimeout
-          );
-        }
-
-        if (e.key === "ArrowRight") {
-          this.pauseSlide();
-          this.nextImage();
-          clearTimeout(AppState.resumeTimeout);
-          AppState.resumeTimeout = setTimeout(
-            () => this.resumeSlide(),
-            CONFIG.resumeSlideTimeout
-          );
-        }
+    try {
+      // Close button
+      if (DOM.modalClose) {
+        DOM.modalClose.addEventListener("click", () => this.closeModal());
       }
-    });
+
+      // Navigation buttons
+      if (DOM.prevBtn) {
+        DOM.prevBtn.addEventListener("click", () => {
+          this.handleNavigation(this.prevImage.bind(this));
+        });
+      }
+
+      if (DOM.nextBtn) {
+        DOM.nextBtn.addEventListener("click", () => {
+          this.handleNavigation(this.nextImage.bind(this));
+        });
+      }
+    } catch (error) {
+      Helpers.logError("ModalModule", "Error setting up modal events:", error);
+    }
   },
 };
 
 // =================== NAVIGATION MODULE ===================
 const NavigationModule = {
+  // Store bound handlers
+  boundHandlers: {
+    scrollHandler: null,
+    documentClickHandler: null,
+  },
+
   /**
    * Initialize navigation functionality
    */
   initNavigation() {
-    // Mobile menu toggle
-    DOM.mobileMenuToggle?.addEventListener("click", () => {
-      DOM.body.classList.toggle("mobile-menu-open");
-    });
+    try {
+      // Bind handlers once for proper cleanup
+      this.boundHandlers.scrollHandler = Helpers.debounce(
+        this.handleScroll.bind(this)
+      );
+      this.boundHandlers.documentClickHandler =
+        this.handleDocumentClick.bind(this);
 
-    // Navigation links
-    DOM.navLinks.forEach((link) => {
-      link.addEventListener("click", () => {
-        DOM.body.classList.remove("mobile-menu-open");
-        DOM.navLinks.forEach((l) => l.classList.remove("active"));
-        link.classList.add("active");
-      });
-    });
-
-    // Close mobile menu when clicking outside
-    document.addEventListener("click", (e) => {
-      if (
-        DOM.body.classList.contains("mobile-menu-open") &&
-        !e.target.closest(".nav-links") &&
-        !e.target.closest(".mobile-menu-toggle")
-      ) {
-        DOM.body.classList.remove("mobile-menu-open");
+      // Mobile menu toggle
+      if (DOM.mobileMenuToggle) {
+        DOM.mobileMenuToggle.addEventListener("click", () => {
+          const isExpanded = DOM.body.classList.contains("mobile-menu-open");
+          DOM.mobileMenuToggle.setAttribute("aria-expanded", !isExpanded);
+          DOM.body.classList.toggle("mobile-menu-open");
+        });
       }
-    });
 
-    this.setInitialActiveState();
-    this.initScrollHandler();
+      // Navigation links
+      DOM.navLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          DOM.body.classList.remove("mobile-menu-open");
+          if (DOM.mobileMenuToggle) {
+            DOM.mobileMenuToggle.setAttribute("aria-expanded", "false");
+          }
+          DOM.navLinks.forEach((l) => l.classList.remove("active"));
+          link.classList.add("active");
+        });
+      });
+
+      // Close mobile menu when clicking outside
+      document.addEventListener(
+        "click",
+        this.boundHandlers.documentClickHandler
+      );
+
+      this.setInitialActiveState();
+      this.initScrollHandler();
+    } catch (error) {
+      Helpers.logError(
+        "NavigationModule",
+        "Error initializing navigation:",
+        error
+      );
+    }
+  },
+
+  /**
+   * Handle document clicks for closing mobile menu
+   */
+  handleDocumentClick(e) {
+    if (
+      DOM.body.classList.contains("mobile-menu-open") &&
+      !e.target.closest(".nav-links") &&
+      !e.target.closest(".mobile-menu-toggle")
+    ) {
+      DOM.body.classList.remove("mobile-menu-open");
+      if (DOM.mobileMenuToggle) {
+        DOM.mobileMenuToggle.setAttribute("aria-expanded", "false");
+      }
+    }
   },
 
   /**
    * Set the initial active state based on URL hash
    */
   setInitialActiveState() {
-    const hash = window.location.hash || "#home";
-    const activeLink = document.querySelector(`.nav-link[href="${hash}"]`);
+    try {
+      // Handle regular section links
+      const hash = window.location.hash.split("/")[0] || "#home";
+      const activeLink = document.querySelector(`.nav-link[href="${hash}"]`);
 
-    if (activeLink) {
-      DOM.navLinks.forEach((link) => link.classList.remove("active"));
-      activeLink.classList.add("active");
+      if (activeLink) {
+        DOM.navLinks.forEach((link) => link.classList.remove("active"));
+        activeLink.classList.add("active");
+      }
+    } catch (error) {
+      Helpers.logError(
+        "NavigationModule",
+        "Error setting initial state:",
+        error
+      );
     }
   },
 
@@ -636,51 +1008,60 @@ const NavigationModule = {
    * Initialize scroll event handler for navigation
    */
   initScrollHandler() {
-    window.addEventListener("scroll", () => {
-      if (!window.requestAnimationFrame) return;
+    window.addEventListener("scroll", this.boundHandlers.scrollHandler);
+  },
 
-      window.requestAnimationFrame(() => {
-        const scrollPosition = window.scrollY;
+  /**
+   * Handle scroll events
+   */
+  handleScroll() {
+    try {
+      const scrollPosition = window.scrollY;
 
-        // Update active nav link based on scroll position
-        this.updateActiveNavOnScroll(scrollPosition);
+      // Update active nav link based on scroll position
+      this.updateActiveNavOnScroll(scrollPosition);
 
-        // Toggle scroll-to-top button visibility
-        if (DOM.scrollToTopBtn) {
-          DOM.scrollToTopBtn.style.display =
-            scrollPosition > 300 ? "block" : "none";
-        }
-      });
-    });
+      // Toggle scroll-to-top button visibility
+      if (DOM.scrollToTopBtn) {
+        DOM.scrollToTopBtn.style.display =
+          scrollPosition > 300 ? "flex" : "none";
+      }
+    } catch (error) {
+      Helpers.logError("NavigationModule", "Error handling scroll:", error);
+    }
   },
 
   /**
    * Update the active navigation link based on scroll position
    */
   updateActiveNavOnScroll(scrollPosition) {
-    let currentSection = "";
+    try {
+      let currentSection = "";
 
-    document.querySelectorAll("section[id]").forEach((section) => {
-      const sectionTop = section.offsetTop - 100;
-      const sectionHeight = section.offsetHeight;
+      document.querySelectorAll("section[id]").forEach((section) => {
+        const sectionTop = section.offsetTop - 100;
+        const sectionHeight = section.offsetHeight;
 
-      if (
-        scrollPosition >= sectionTop &&
-        scrollPosition < sectionTop + sectionHeight
-      ) {
-        currentSection = "#" + section.getAttribute("id");
+        if (
+          scrollPosition >= sectionTop &&
+          scrollPosition < sectionTop + sectionHeight
+        ) {
+          currentSection = "#" + section.getAttribute("id");
+        }
+      });
+
+      if (currentSection) {
+        const shouldBeActive = document.querySelector(
+          `.nav-link[href="${currentSection}"]`
+        );
+
+        if (shouldBeActive && !shouldBeActive.classList.contains("active")) {
+          DOM.navLinks.forEach((link) => link.classList.remove("active"));
+          shouldBeActive.classList.add("active");
+        }
       }
-    });
-
-    if (currentSection) {
-      const shouldBeActive = document.querySelector(
-        `.nav-link[href="${currentSection}"]`
-      );
-
-      if (shouldBeActive && !shouldBeActive.classList.contains("active")) {
-        DOM.navLinks.forEach((link) => link.classList.remove("active"));
-        shouldBeActive.classList.add("active");
-      }
+    } catch (error) {
+      Helpers.logError("NavigationModule", "Error updating nav:", error);
     }
   },
 
@@ -688,112 +1069,158 @@ const NavigationModule = {
    * Initialize smooth scrolling for internal links
    */
   initSmoothScrolling() {
-    DOM.internalLinks.forEach((link) => {
-      // Skip modal buttons
-      if (link.closest(".modal-buttons")) {
-        return;
-      }
-
-      link.addEventListener("click", function (e) {
-        e.preventDefault();
-
-        const targetId = this.getAttribute("href");
-
-        if (targetId !== "#") {
-          const targetElement = document.querySelector(targetId);
-
-          if (targetElement) {
-            window.scrollTo({
-              top: targetElement.offsetTop - CONFIG.scrollOffset,
-              behavior: "smooth",
-            });
-
-            history.pushState(null, null, targetId);
-          }
+    try {
+      DOM.internalLinks.forEach((link) => {
+        // Skip modal buttons
+        if (link.closest(".modal-buttons")) {
+          return;
         }
-      });
-    });
 
-    // Scroll to top button
-    if (DOM.scrollToTopBtn) {
-      DOM.scrollToTopBtn.addEventListener("click", () => {
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth",
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+
+          const targetId = this.getAttribute("href");
+
+          if (targetId !== "#") {
+            const targetElement = document.querySelector(targetId);
+
+            if (targetElement) {
+              window.scrollTo({
+                top: targetElement.offsetTop - CONFIG.scrollOffset,
+                behavior: "smooth",
+              });
+
+              // Update URL but don't trigger navigation
+              history.pushState(null, null, targetId);
+            }
+          }
         });
       });
+
+      // Scroll to top button
+      if (DOM.scrollToTopBtn) {
+        DOM.scrollToTopBtn.addEventListener("click", () => {
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+          });
+        });
+      }
+    } catch (error) {
+      Helpers.logError(
+        "NavigationModule",
+        "Error setting up smooth scrolling:",
+        error
+      );
     }
+  },
+
+  /**
+   * Clean up event listeners
+   */
+  cleanup() {
+    document.removeEventListener(
+      "click",
+      this.boundHandlers.documentClickHandler
+    );
+    window.removeEventListener("scroll", this.boundHandlers.scrollHandler);
   },
 };
 
 // =================== ANIMATION MODULE ===================
 const AnimationModule = {
+  // Store type effect timeout
+  typeEffectTimeout: null,
+
   /**
    * Initialize typewriter effect
    */
   initTypewriter() {
-    if (!DOM.professionText) return;
+    try {
+      if (!DOM.professionText) return;
 
-    const professions = [
-      "Web Developer",
-      "UI/UX Designer",
-      "Graphic Designer",
-      "Content Creator",
-      "Software Engineer",
-    ];
+      const professions = [
+        "Web Developer",
+        "UI/UX Designer",
+        "Graphic Designer",
+        "Content Creator",
+        "Software Engineer",
+      ];
 
-    let currentProfessionIndex = 0;
-    let currentCharIndex = 0;
-    let isDeleting = false;
-    let typingSpeed = CONFIG.typewriterSpeed;
+      let currentProfessionIndex = 0;
+      let currentCharIndex = 0;
+      let isDeleting = false;
+      let typingSpeed = CONFIG.typewriterSpeed;
 
-    function typeEffect() {
-      const currentProfession = professions[currentProfessionIndex];
+      const typeEffect = () => {
+        const currentProfession = professions[currentProfessionIndex];
 
-      if (isDeleting) {
-        // Deleting characters
-        DOM.professionText.textContent = currentProfession.substring(
-          0,
-          currentCharIndex - 1
-        );
-        currentCharIndex--;
-        typingSpeed = CONFIG.typewriterDeleteSpeed;
-      } else {
-        // Adding characters
-        DOM.professionText.textContent = currentProfession.substring(
-          0,
-          currentCharIndex + 1
-        );
-        currentCharIndex++;
-        typingSpeed = CONFIG.typewriterSpeed;
-      }
+        if (isDeleting) {
+          // Deleting characters
+          DOM.professionText.textContent = currentProfession.substring(
+            0,
+            currentCharIndex - 1
+          );
+          currentCharIndex--;
+          typingSpeed = CONFIG.typewriterDeleteSpeed;
+        } else {
+          // Adding characters
+          DOM.professionText.textContent = currentProfession.substring(
+            0,
+            currentCharIndex + 1
+          );
+          currentCharIndex++;
+          typingSpeed = CONFIG.typewriterSpeed;
+        }
 
-      // Full word displayed - start deleting
-      if (!isDeleting && currentCharIndex === currentProfession.length) {
-        isDeleting = true;
-        typingSpeed = CONFIG.typewriterPause;
-      }
-      // Word fully deleted - move to next word
-      else if (isDeleting && currentCharIndex === 0) {
-        isDeleting = false;
-        currentProfessionIndex =
-          (currentProfessionIndex + 1) % professions.length;
-        typingSpeed = CONFIG.typewriterDelay;
-      }
+        // Full word displayed - start deleting
+        if (!isDeleting && currentCharIndex === currentProfession.length) {
+          isDeleting = true;
+          typingSpeed = CONFIG.typewriterPause;
+        }
+        // Word fully deleted - move to next word
+        else if (isDeleting && currentCharIndex === 0) {
+          isDeleting = false;
+          currentProfessionIndex =
+            (currentProfessionIndex + 1) % professions.length;
+          typingSpeed = CONFIG.typewriterDelay;
+        }
 
-      setTimeout(typeEffect, typingSpeed);
+        this.typeEffectTimeout = setTimeout(typeEffect, typingSpeed);
+      };
+
+      setTimeout(typeEffect, 1000);
+    } catch (error) {
+      Helpers.logError(
+        "AnimationModule",
+        "Error initializing typewriter:",
+        error
+      );
     }
-
-    setTimeout(typeEffect, 1000);
   },
 
   /**
    * Update copyright year
    */
   updateCopyrightYear() {
-    if (DOM.yearSpan) {
-      DOM.yearSpan.textContent = new Date().getFullYear();
+    try {
+      if (DOM.yearSpan) {
+        DOM.yearSpan.textContent = new Date().getFullYear();
+      }
+    } catch (error) {
+      Helpers.logError(
+        "AnimationModule",
+        "Error updating copyright year:",
+        error
+      );
     }
+  },
+
+  /**
+   * Clean up animation timers
+   */
+  cleanup() {
+    clearTimeout(this.typeEffectTimeout);
   },
 };
 
@@ -803,17 +1230,27 @@ const RoutingModule = {
    * Initialize routing functionality
    */
   initRouting() {
-    // Check for project hash on load
-    const hash = window.location.hash;
+    try {
+      // Check for project hash on load
+      const hash = window.location.hash;
 
-    if (hash.startsWith("#projects/")) {
-      const slug = hash.slice(10); // Remove "#projects/"
+      if (hash.startsWith("#projects/")) {
+        const slug = hash.slice(10); // Remove "#projects/"
+        this.handleProjectRoute(slug);
+      }
 
-      this.handleProjectRoute(slug);
+      // Handle browser back/forward buttons
+      window.addEventListener("popstate", this.handlePopState.bind(this));
+    } catch (error) {
+      Helpers.logError("RoutingModule", "Error initializing routing:", error);
     }
+  },
 
-    // Handle browser back/forward buttons
-    window.addEventListener("popstate", (e) => {
+  /**
+   * Handle popstate events for browser history navigation
+   */
+  handlePopState(e) {
+    try {
       if (e.state && e.state.slug) {
         const slug = e.state.slug;
         const savedScroll = e.state.scrollY || 0;
@@ -824,29 +1261,37 @@ const RoutingModule = {
           this.handleProjectRoute(slug, false);
         }
       } else {
-        ModalModule.closeModal();
+        // No slug in state, close modal if open
+        if (DOM.modalOverlay.style.display === "flex") {
+          ModalModule.closeModal();
+        }
       }
-    });
+    } catch (error) {
+      Helpers.logError("RoutingModule", "Error handling popstate:", error);
+    }
   },
 
   /**
    * Handle project route - open modal for given slug
    */
   handleProjectRoute(slug, useDelay = true) {
-    const card = AppState.cards.find((c) => c.dataset.projectSlug === slug);
+    try {
+      const card = AppState.cards.find((c) => c.dataset.projectSlug === slug);
 
-    if (card) {
-      const openModal = () => {
-        const btn = card.querySelector(".view-details-btn");
-        if (btn) btn.click();
-      };
+      if (card) {
+        const openModal = () => {
+          ModalModule.openModalFromCard(card);
+        };
 
-      // Add delay when page is loading to ensure all elements are ready
-      if (useDelay) {
-        setTimeout(openModal, 500);
-      } else {
-        openModal();
+        // Add delay when page is loading to ensure all elements are ready
+        if (useDelay) {
+          setTimeout(openModal, 500);
+        } else {
+          openModal();
+        }
       }
+    } catch (error) {
+      Helpers.logError("RoutingModule", "Error handling project route:", error);
     }
   },
 };
@@ -857,72 +1302,134 @@ const EventModule = {
    * Set up filter button event listeners
    */
   setupFilterButtons() {
-    DOM.filterButtons.forEach((button) => {
-      if (!button.classList.contains("active")) {
-        button.setAttribute("aria-pressed", "false");
-      }
+    try {
+      DOM.filterButtons.forEach((button) => {
+        if (!button.classList.contains("active")) {
+          button.setAttribute("aria-pressed", "false");
+        }
 
-      button.addEventListener("click", () => {
-        // Update active state
-        DOM.filterButtons.forEach((btn) => {
-          btn.classList.remove("active");
-          btn.setAttribute("aria-pressed", "false");
+        button.addEventListener("click", () => {
+          // Update active state
+          DOM.filterButtons.forEach((btn) => {
+            btn.classList.remove("active");
+            btn.setAttribute("aria-pressed", "false");
+          });
+
+          button.classList.add("active");
+          button.setAttribute("aria-pressed", "true");
+
+          // Filter cards
+          CardModule.filterCards(button.dataset.filter);
         });
-
-        button.classList.add("active");
-        button.setAttribute("aria-pressed", "true");
-
-        // Filter cards
-        CardModule.filterCards(button.dataset.filter);
       });
-    });
+    } catch (error) {
+      Helpers.logError(
+        "EventModule",
+        "Error setting up filter buttons:",
+        error
+      );
+    }
   },
 
   /**
    * Set up all event listeners
    */
   setupAllEventListeners() {
-    // Set up filter buttons
-    this.setupFilterButtons();
+    try {
+      // Set up filter buttons
+      this.setupFilterButtons();
 
-    // Set up modal events
-    ModalModule.setupModalEvents();
-
-    // Reset scroll position on page load
-    window.addEventListener("load", () => {
-      window.scrollTo(0, 0);
-    });
+      // Add resize handler for responsive adjustments
+      window.addEventListener(
+        "resize",
+        Helpers.debounce(() => {
+          // Recalculate card layout if needed
+          if (AppState.currentPage) {
+            CardModule.showPage(AppState.currentPage);
+          }
+        }, 200)
+      );
+    } catch (error) {
+      Helpers.logError(
+        "EventModule",
+        "Error setting up event listeners:",
+        error
+      );
+    }
   },
 };
 
 // =================== SCROLL REVEAL MODULE ===================
 const ScrollRevealModule = {
+  observers: [],
+
   /**
    * Initialize scroll reveal functionality
    */
   init() {
-    // Get all sections to animate
-    const sections = document.querySelectorAll("section");
+    try {
+      // Check if IntersectionObserver is supported
+      if (!("IntersectionObserver" in window)) {
+        this.fallbackReveal();
+        return;
+      }
 
-    // Set up the Intersection Observer
-    const observer = new IntersectionObserver(this.handleIntersect, {
-      root: null,
-      rootMargin: "0px",
-      threshold: 0.15, // Trigger when 15% of the section is visible
-    });
+      // Get all sections to animate
+      const sections = document.querySelectorAll("section");
 
-    // Observe each section
-    sections.forEach((section) => {
-      observer.observe(section);
-
-      // Hide section content initially
-      section.classList.add("reveal-section");
-
-      // Find elements to animate inside section
-      const elementsToAnimate = section.querySelectorAll(".reveal-item");
-      elementsToAnimate.forEach((el) => {
-        el.classList.add("reveal-hidden");
+      // Set up the Intersection Observer
+      const observer = new IntersectionObserver(this.handleIntersect, {
+        root: null,
+        rootMargin: "0px",
+        threshold: 0.15, // Trigger when 15% of the section is visible
       });
+
+      // Store observer for cleanup
+      this.observers.push(observer);
+
+      // Observe each section
+      sections.forEach((section) => {
+        observer.observe(section);
+
+        // Hide section content initially
+        section.classList.add("reveal-section");
+
+        // Find elements to animate inside section
+        const elementsToAnimate = section.querySelectorAll(".reveal-item");
+        elementsToAnimate.forEach((el) => {
+          // Only add the hidden class if element is not in the viewport
+          if (!this.isInViewport(el)) {
+            el.classList.add("reveal-hidden");
+          }
+        });
+      });
+    } catch (error) {
+      Helpers.logError(
+        "ScrollRevealModule",
+        "Error initializing scroll reveal:",
+        error
+      );
+
+      // Show everything in case of error
+      this.fallbackReveal();
+    }
+  },
+
+  /**
+   * Check if element is in viewport
+   */
+  isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return rect.top < window.innerHeight && rect.bottom > 0;
+  },
+
+  /**
+   * Fallback method when IntersectionObserver is not available
+   */
+  fallbackReveal() {
+    document.querySelectorAll(".reveal-section, .reveal-item").forEach((el) => {
+      el.classList.add("reveal-visible");
+      el.classList.remove("reveal-hidden");
     });
   },
 
@@ -940,7 +1447,7 @@ const ScrollRevealModule = {
         elementsToAnimate.forEach((el, index) => {
           setTimeout(() => {
             el.classList.add("reveal-visible");
-          }, 100 * (index + 1)); // Stagger effect
+          }, CONFIG.animationStaggerDelay * (index + 1)); // Stagger effect
         });
 
         // Unobserve section once revealed
@@ -948,35 +1455,206 @@ const ScrollRevealModule = {
       }
     });
   },
+
+  /**
+   * Clean up observers
+   */
+  cleanup() {
+    this.observers.forEach((observer) => {
+      if (observer && observer.disconnect) {
+        observer.disconnect();
+      }
+    });
+    this.observers = [];
+  },
 };
 
-// =================== INITIALIZATION ===================
-function init() {
-  // Create and set up cards
-  CardModule.createCards();
-  CardModule.initCardEvents();
-  CardModule.filterCards("all");
+// =================== APP MODULE ===================
+const AppModule = {
+  /**
+   * Initialize the application
+   */
+  init() {
+    try {
+      // Tarayıcının scroll restorasyonunu devre dışı bırak
+      if ("scrollRestoration" in history) {
+        history.scrollRestoration = "manual";
+      }
 
-  // Set up navigation
-  NavigationModule.initNavigation();
-  NavigationModule.initSmoothScrolling();
+      // Sayfa yükleme davranışını konfigüre et
+      this.setupPageLoadBehavior();
 
-  // Initialize animations
-  AnimationModule.initTypewriter();
-  AnimationModule.updateCopyrightYear();
+      // Create and set up cards
+      CardModule.createCards();
+      CardModule.initCardEvents();
+      CardModule.filterCards("all");
 
-  // Initialize scroll reveal animations
-  ScrollRevealModule.init();
+      // Initialize modal handlers
+      ModalModule.init();
 
-  // Set up routing
-  RoutingModule.initRouting();
+      // Set up navigation
+      NavigationModule.initNavigation();
+      NavigationModule.initSmoothScrolling();
 
-  // Set up event listeners
-  EventModule.setupAllEventListeners();
-}
+      // Initialize animations
+      AnimationModule.initTypewriter();
+      AnimationModule.updateCopyrightYear();
+
+      // Initialize scroll reveal animations
+      ScrollRevealModule.init();
+
+      // Set up routing
+      RoutingModule.initRouting();
+
+      // Set up event listeners
+      EventModule.setupAllEventListeners();
+
+      console.log("Portfolio application initialized successfully");
+    } catch (error) {
+      console.error("Error initializing application:", error);
+
+      // Critical failure recovery - ensure basic functionality
+      this.criticalFallback();
+    }
+  },
+
+  /**
+   * Configure page load and scroll behavior
+   */
+  setupPageLoadBehavior() {
+    try {
+      // Sayfa ilk yüklendiğinde scroll pozisyonunu sıfırla
+      this.forceScrollToTop();
+
+      // Hash URL'lerini işlemek için
+      if (window.location.hash) {
+        // Önce hash'i geçici olarak kaldır, sonra tekrar ekle
+        const hash = window.location.hash;
+        const isProjectHash = hash.startsWith("#projects/");
+
+        if (!isProjectHash) {
+          // Proje modali değilse, gecikmeli olarak hash'e git
+          setTimeout(() => {
+            // Hash'e git ama bir süre bekle
+            this.scrollToHash(hash);
+          }, 500);
+        }
+      }
+
+      // Sayfa yenilemeden önce temizlik
+      window.addEventListener("beforeunload", () => {
+        // Tarayıcının scroll değerini sıfırla
+        window.scrollTo(0, 0);
+      });
+    } catch (error) {
+      Helpers.logError(
+        "AppModule",
+        "Error setting up page load behavior:",
+        error
+      );
+    }
+  },
+
+  /**
+   * Scroll to a specific hash in a controlled manner
+   */
+  scrollToHash(hash) {
+    try {
+      // Project hash'lerini özel bir şekilde yönlendir
+      if (hash.startsWith("#projects/")) {
+        RoutingModule.handleProjectRoute(hash.slice(10));
+        return;
+      }
+
+      const targetElement = document.querySelector(hash);
+      if (targetElement) {
+        window.scrollTo({
+          top: targetElement.offsetTop - CONFIG.scrollOffset,
+          behavior: "smooth",
+        });
+      }
+    } catch (error) {
+      Helpers.logError("AppModule", "Error scrolling to hash:", error);
+    }
+  },
+
+  /**
+   * Force scroll position to top with multiple attempts for reliability
+   */
+  forceScrollToTop() {
+    // İlk deneme
+    window.scrollTo(0, 0);
+
+    // Ek denemeler
+    let attempts = 0;
+    const scrollInterval = setInterval(() => {
+      window.scrollTo(0, 0);
+      attempts++;
+
+      if (attempts >= CONFIG.scrollAttempts) {
+        clearInterval(scrollInterval);
+      }
+    }, CONFIG.scrollInterval);
+  },
+
+  /**
+   * Emergency fallback for critical failures
+   */
+  criticalFallback() {
+    try {
+      // Show all content without animations
+      document
+        .querySelectorAll(".reveal-section, .reveal-item, .card-item, .hide")
+        .forEach((el) => {
+          el.style.opacity = "1";
+          el.style.transform = "none";
+          el.classList.add("reveal-visible");
+          el.classList.remove("hide");
+          el.style.display = "flex";
+        });
+
+      // Basic card display
+      if (DOM.cardsGrid && cardsData && cardsData.length) {
+        CardModule.createCards();
+      }
+
+      // Ensure navigation works
+      NavigationModule.initSmoothScrolling();
+
+      console.log("Applied critical fallback");
+    } catch (err) {
+      console.error("Even fallback failed:", err);
+    }
+  },
+
+  /**
+   * Clean up all resources and event listeners
+   */
+  cleanup() {
+    // Clean up all module resources
+    ScrollRevealModule.cleanup();
+    AnimationModule.cleanup();
+    NavigationModule.cleanup();
+
+    // Clear all intervals and timeouts
+    clearInterval(AppState.autoSlideInterval);
+    clearTimeout(AppState.resumeTimeout);
+    clearTimeout(AppState.scrollTimeout);
+
+    // Reset state
+    AppState.reset();
+
+    console.log("Application cleanup complete");
+  },
+};
 
 // Start the application when DOM content is loaded
 document.addEventListener("DOMContentLoaded", () => {
   window.scrollTo(0, 0);
-  init();
+  AppModule.init();
+});
+
+// Handle cleanup on unload
+window.addEventListener("unload", () => {
+  AppModule.cleanup();
 });

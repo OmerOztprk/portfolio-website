@@ -31,7 +31,7 @@ const CONFIG = {
   debounceDelay: 150,
   animationStaggerDelay: 100,
 
-  scrollDelay: 50,
+  // Scroll settings
   scrollAttempts: 3,
   scrollInterval: 100,
 };
@@ -421,12 +421,14 @@ const CardModule = {
   initCardEvents() {
     try {
       // Use event delegation for better performance
-      DOM.cardsGrid.addEventListener("click", (e) => {
-        const detailsBtn = e.target.closest(".view-details-btn");
-        if (detailsBtn) {
-          ModalModule.openModalFromCard(detailsBtn.closest(".card-item"));
-        }
-      });
+      if (DOM.cardsGrid) {
+        DOM.cardsGrid.addEventListener("click", (e) => {
+          const detailsBtn = e.target.closest(".view-details-btn");
+          if (detailsBtn) {
+            ModalModule.openModalFromCard(detailsBtn.closest(".card-item"));
+          }
+        });
+      }
     } catch (error) {
       Helpers.logError("CardModule", "Error initializing card events:", error);
     }
@@ -826,9 +828,6 @@ const ModalModule = {
     }
   },
 
-  /**
-   * Close the modal
-   */
   closeModal() {
     try {
       if (!DOM.modalOverlay) return;
@@ -838,27 +837,35 @@ const ModalModule = {
       AppState.isSlideHeld = false;
       this.cleanupImagePauseEvents();
 
-      // Remove keyboard event listener
       window.removeEventListener("keydown", this.boundHandlers.keydownHandler);
-
-      // Remove focus trap
       Helpers.removeFocusTrap(DOM.modalOverlay);
 
-      // Restore body scrolling
+      // Scroll'u geri yüklemeden önce stil sıfırla
       DOM.body.style.overflow = "";
       DOM.body.style.position = "";
       DOM.body.style.top = "";
       DOM.body.style.width = "";
 
-      // Restore scroll position
-      window.scrollTo(0, AppState.savedScrollPosition);
+      // Scroll pozisyonunu restore et
+      window.scrollTo({
+        top: AppState.savedScrollPosition,
+        behavior: "instant",
+      });
 
-      // Update URL
-      const url = new URL(window.location.href);
-      url.hash = "#projects";
-      history.replaceState({}, "", url.toString());
+      // 🔽 Hash yalnızca `#projects/some-slug` ise `#projects` olarak bırakılır
+      const hash = window.location.hash;
+      if (hash.startsWith("#projects/")) {
+        history.replaceState({}, "", "#projects");
+      } else {
+        // Diğer tüm durumlarda tamamen temizle
+        history.replaceState(
+          {},
+          "",
+          window.location.pathname + window.location.search
+        );
+      }
 
-      // Return focus to the element that opened the modal
+      // Odak yönetimi
       const activeCardSlug = AppState.cards.find(
         (card) => card.dataset.projectSlug === window.location.hash.slice(10)
       );
@@ -869,10 +876,7 @@ const ModalModule = {
     } catch (error) {
       Helpers.logError("ModalModule", "Error closing modal:", error);
 
-      // Emergency fallback
-      if (DOM.modalOverlay) {
-        DOM.modalOverlay.style.display = "none";
-      }
+      if (DOM.modalOverlay) DOM.modalOverlay.style.display = "none";
 
       DOM.body.style.overflow = "";
       DOM.body.style.position = "";
@@ -1034,30 +1038,79 @@ const NavigationModule = {
   /**
    * Update the active navigation link based on scroll position
    */
+  // ...existing code...
+
+  // ...existing code...
+
+  // NavigationModule içindeki updateActiveNavOnScroll fonksiyonunu değiştirin
   updateActiveNavOnScroll(scrollPosition) {
     try {
-      let currentSection = "";
+      // Görünür bölümleri ve görünürlük oranlarını saklamak için dizi
+      const visibleSections = [];
 
+      // Tüm bölümleri kontrol et
       document.querySelectorAll("section[id]").forEach((section) => {
-        const sectionTop = section.offsetTop - 100;
-        const sectionHeight = section.offsetHeight;
+        // Bölümün viewport'taki konumunu al
+        const rect = section.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
 
-        if (
-          scrollPosition >= sectionTop &&
-          scrollPosition < sectionTop + sectionHeight
-        ) {
-          currentSection = "#" + section.getAttribute("id");
+        // Bölümün görünürlük oranını hesapla
+        let visibleHeight = 0;
+
+        // Bölüm viewport içinde mi?
+        if (rect.top < viewportHeight && rect.bottom > 0) {
+          // Görünür yüksekliği hesapla (viewport içinde kalan kısım)
+          visibleHeight =
+            Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+
+          // Bölümün görünürlük yüzdesini hesapla
+          const visiblePercent = (visibleHeight / viewportHeight) * 100;
+
+          // Görünürlük yüzdesi belirli bir eşiğin üzerindeyse listeye ekle
+          if (visiblePercent > 5) {
+            // En az %5 görünür olmalı
+            visibleSections.push({
+              id: section.id,
+              visiblePercent: visiblePercent,
+              // Bölümün viewport'un üst kısmına yakınlığını ölçmek için
+              distanceFromTop: Math.abs(rect.top),
+            });
+          }
         }
       });
 
-      if (currentSection) {
+      // Görünür bölüm varsa
+      if (visibleSections.length > 0) {
+        // Önce görünürlük yüzdesine göre sırala (en yüksek önce)
+        visibleSections.sort((a, b) => {
+          // Görünürlük yüzdeleri arasındaki fark belirli bir eşikten az ise
+          // viewport'un üst kısmına daha yakın olan bölümü tercih et
+          const percentDifference = Math.abs(
+            a.visiblePercent - b.visiblePercent
+          );
+
+          if (percentDifference < 15) {
+            return a.distanceFromTop - b.distanceFromTop;
+          }
+
+          // Aksi takdirde, en yüksek görünürlük yüzdesine sahip bölümü seç
+          return b.visiblePercent - a.visiblePercent;
+        });
+
+        // En yüksek görünürlük değerine sahip bölümü kullan
+        const mostVisibleSection = "#" + visibleSections[0].id;
+
+        // Aktif nav-link'i güncelle
         const shouldBeActive = document.querySelector(
-          `.nav-link[href="${currentSection}"]`
+          `.nav-link[href="${mostVisibleSection}"]`
         );
 
         if (shouldBeActive && !shouldBeActive.classList.contains("active")) {
           DOM.navLinks.forEach((link) => link.classList.remove("active"));
           shouldBeActive.classList.add("active");
+
+          // URL hash'ini değiştirmek isterseniz (opsiyonel):
+          // history.replaceState(null, null, mostVisibleSection);
         }
       }
     } catch (error) {
@@ -1476,15 +1529,15 @@ const AppModule = {
    */
   init() {
     try {
-      // Tarayıcının scroll restorasyonunu devre dışı bırak
+      // Tarayıcının otomatik scroll geri yüklemesini devre dışı bırak
       if ("scrollRestoration" in history) {
         history.scrollRestoration = "manual";
       }
 
-      // Sayfa yükleme davranışını konfigüre et
-      this.setupPageLoadBehavior();
+      // Tarayıcı hash restorasyonunu engellemek için sayfa yüklenmeden hash'i temizle
+      this.preventHashRestoration();
 
-      // Create and set up cards
+      // Diğer işlemler...
       CardModule.createCards();
       CardModule.initCardEvents();
       CardModule.filterCards("all");
@@ -1496,14 +1549,12 @@ const AppModule = {
       NavigationModule.initNavigation();
       NavigationModule.initSmoothScrolling();
 
-      // Initialize animations
+      // Animasyon modüllerini başlat - Bu satırları ekliyoruz
       AnimationModule.initTypewriter();
       AnimationModule.updateCopyrightYear();
+      ScrollRevealModule.init(); // Bu çağrı önemli - eksikti
 
-      // Initialize scroll reveal animations
-      ScrollRevealModule.init();
-
-      // Set up routing
+      // Routing'i başlat
       RoutingModule.initRouting();
 
       // Set up event listeners
@@ -1512,74 +1563,66 @@ const AppModule = {
       console.log("Portfolio application initialized successfully");
     } catch (error) {
       console.error("Error initializing application:", error);
-
-      // Critical failure recovery - ensure basic functionality
       this.criticalFallback();
     }
   },
 
-  /**
-   * Configure page load and scroll behavior
-   */
-  setupPageLoadBehavior() {
+  // Hash'in tekrar geri gelmesini engellemek için fonksiyonu güncelleyelim
+  preventHashRestoration() {
     try {
-      // Sayfa ilk yüklendiğinde scroll pozisyonunu sıfırla
-      this.forceScrollToTop();
-
-      // Hash URL'lerini işlemek için
+      // Hash varsa temizle - Sayfanın ilk yüklenmesi sırasında hemen çalışacak
       if (window.location.hash) {
-        // Önce hash'i geçici olarak kaldır, sonra tekrar ekle
-        const hash = window.location.hash;
-        const isProjectHash = hash.startsWith("#projects/");
+        // URL'yi değiştir
+        history.replaceState(
+          null,
+          null,
+          window.location.pathname + window.location.search
+        );
 
-        if (!isProjectHash) {
-          // Proje modali değilse, gecikmeli olarak hash'e git
-          setTimeout(() => {
-            // Hash'e git ama bir süre bekle
-            this.scrollToHash(hash);
-          }, 500);
-        }
+        // Sayfayı scroll etmiyoruz - bu satırı kaldırıyoruz
+        // window.scrollTo(0, 0);
       }
-
-      // Sayfa yenilemeden önce temizlik
-      window.addEventListener("beforeunload", () => {
-        // Tarayıcının scroll değerini sıfırla
-        window.scrollTo(0, 0);
-      });
     } catch (error) {
       Helpers.logError(
         "AppModule",
-        "Error setting up page load behavior:",
+        "Error preventing hash restoration:",
         error
       );
     }
   },
 
   /**
-   * Scroll to a specific hash in a controlled manner
+   * Temiz bir başlangıç için hash'i temizle ve sayfayı en üste kaydır
    */
-  scrollToHash(hash) {
+  cleanHashAndScrollToTop() {
     try {
-      // Project hash'lerini özel bir şekilde yönlendir
-      if (hash.startsWith("#projects/")) {
-        RoutingModule.handleProjectRoute(hash.slice(10));
-        return;
+      // Hash varsa temizle
+      if (window.location.hash) {
+        history.replaceState(
+          null,
+          null,
+          window.location.pathname + window.location.search
+        );
       }
 
-      const targetElement = document.querySelector(hash);
-      if (targetElement) {
-        window.scrollTo({
-          top: targetElement.offsetTop - CONFIG.scrollOffset,
-          behavior: "smooth",
-        });
+      // Yalnızca ilk yüklemede scroll'u en üste getir
+      if ("scrollRestoration" in history) {
+        history.scrollRestoration = "manual";
       }
+
+      window.scrollTo(0, 0);
     } catch (error) {
-      Helpers.logError("AppModule", "Error scrolling to hash:", error);
+      Helpers.logError(
+        "AppModule",
+        "Error cleaning hash and scrolling to top:",
+        error
+      );
     }
   },
 
   /**
-   * Force scroll position to top with multiple attempts for reliability
+   * Çoklu deneme ile scroll pozisyonunu zorla sıfırla
+   * (Bazı tarayıcılar ilk scroll komutunu görmezden gelebiliyor)
    */
   forceScrollToTop() {
     // İlk deneme
@@ -1648,13 +1691,26 @@ const AppModule = {
   },
 };
 
-// Start the application when DOM content is loaded
+// Sayfa yüklendiğinde uygulamayı başlat
 document.addEventListener("DOMContentLoaded", () => {
-  window.scrollTo(0, 0);
+  // AppModule kendi içinde scroll'u sıfırlayacak
   AppModule.init();
 });
 
-// Handle cleanup on unload
-window.addEventListener("unload", () => {
+// Sayfa yenilenmeden önce hash'i temizle ve scroll'u sıfırla
+window.addEventListener("beforeunload", () => {
+  // Hash'i temizle
+  /*if (window.location.hash) {
+    history.replaceState(
+      null,
+      null,
+      window.location.pathname + window.location.search
+    );
+  }*/
+
+  // Scroll'u sıfırla
+  //window.scrollTo(0, 0);
+
+  // Temizlik işlemi
   AppModule.cleanup();
 });

@@ -280,17 +280,20 @@ const CardModule = {
       card.dataset.projectSlug = item.slug;
 
       const links = item.links
-        .map(
-          (link) => {
-            // İkon tipine göre sınıf belirle
-            const iconClass = link.icon.includes("github") ? "github-icon" : 
-                            link.icon.includes("play") ? "play-icon" : "code-icon"; 
-            
-            return `<a href="${link.url}" target="_blank" class="card-link-item ${iconClass}">
-              <i class="${link.icon}"></i>
-            </a>`;
+        .map((link) => {
+          // İkon tipine göre özel class ver, diğerlerinde class ekleme
+          let iconClass = "";
+
+          if (link.icon.includes("github")) {
+            iconClass = "github-icon";
+          } else if (link.icon.includes("play")) {
+            iconClass = "play-icon";
           }
-        )
+
+          return `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="card-link-item ${iconClass}">
+            <i class="${link.icon}" aria-hidden="true"></i>
+          </a>`;
+        })
         .join("");
 
       card.innerHTML = `

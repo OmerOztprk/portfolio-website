@@ -324,13 +324,83 @@ const CardModule = {
    * Kategoriye göre kartları filtreler
    */
   filterCards(filter) {
-    AppState.filteredCards = AppState.cards.filter(
-      (card) => filter === "all" || card.dataset.category === filter
-    );
+    // Filtreleme öncesi boş kategori mesajını temizle
+    this.hideEmptyCategoryMessage();
+
+    // Filtreleme mantığını düzelt - dataset.category kullan
+    AppState.filteredCards =
+      filter === "all"
+        ? AppState.cards
+        : AppState.cards.filter((card) =>
+            card.dataset.category.includes(filter)
+          );
 
     AppState.currentPage = 1;
-    this.renderPagination();
     this.showPage(1);
+    this.renderPagination();
+
+    // Filtreleme sonrası boş durum kontrolü
+    if (AppState.filteredCards.length === 0) {
+      this.showEmptyCategoryMessage(filter);
+    }
+  },
+
+  /**
+   * Boş kategori mesajını oluşturur ve gösterir
+   */
+  showEmptyCategoryMessage(filter) {
+    const emptyCategory = document.querySelector(".empty-category");
+    const cardsGrid = document.querySelector(".cards-grid");
+    const paginationContainer = document.querySelector(".pagination");
+
+    // Kartları ve sayfalamayı gizle
+    cardsGrid.style.display = "none";
+    paginationContainer.style.display = "none";
+
+    // Filtre adını belirle (ilk harfi büyük yaparak)
+    let categoryName =
+      filter === "all"
+        ? "Projects"
+        : filter.charAt(0).toUpperCase() + filter.slice(1);
+
+    // Tüm kategoriler için sabit bir ikon kullan
+    const icon = "fa-folder-open";
+
+    // İçeriği oluştur
+    emptyCategory.innerHTML = `
+    <i class="fas ${icon}" aria-hidden="true"></i>
+    <h3>No ${categoryName} Found</h3>
+    <p>There are currently no projects in the ${
+      filter === "all" ? "portfolio" : categoryName + " category"
+    }. Check back later!</p>
+  `;
+
+    // Boş kategori mesajını göster
+    emptyCategory.style.display = "block";
+
+    // ScrollReveal'ı güncelle (eğer kullanılıyorsa)
+    if (
+      ScrollRevealModule &&
+      typeof ScrollRevealModule.revealItems === "function"
+    ) {
+      ScrollRevealModule.revealItems();
+    }
+  },
+
+  /**
+   * Boş kategori mesajını gizler
+   */
+  hideEmptyCategoryMessage() {
+    const emptyCategory = document.querySelector(".empty-category");
+    const cardsGrid = document.querySelector(".cards-grid");
+
+    if (emptyCategory) {
+      // Boş kategori mesajını gizle
+      emptyCategory.style.display = "none";
+
+      // Kart grid'ini göster (pagination showPage'de kontrol edilecek)
+      cardsGrid.style.display = "grid";
+    }
   },
 
   /**
@@ -352,6 +422,11 @@ const CardModule = {
         // Kademeli animasyon için
         setTimeout(() => card.classList.remove("hide"), 50 + index * 20);
       });
+
+    // Sayfalamayı güncelle - eğer filtrelenmiş kart yoksa gizle
+    const paginationContainer = document.querySelector(".pagination");
+    paginationContainer.style.display =
+      AppState.filteredCards.length > CONFIG.cardsPerPage ? "flex" : "none";
   },
 
   /**

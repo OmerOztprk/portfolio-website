@@ -42,6 +42,7 @@
   --animation-duration: 0.8s;
   --animation-delay-base: 0.2s;
   --transition: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  
 
   /* Other variables */
   --border-radius: 12px;
@@ -560,7 +561,7 @@ section {
 }
 
 .about-image:hover {
-  transform: translateY(-10px);
+  transform: translateY(-8px);
   box-shadow: 0 20px 30px rgba(0, 0, 0, 0.2);
 }
 
@@ -1068,6 +1069,43 @@ section {
   background-color: var(--primary-dark);
   transform: translateY(-2px);
   box-shadow: var(--shadow);
+}
+
+/* Empty Category Message */
+.empty-category {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: var(--space-xl);
+  max-width: 500px;
+  margin: 2rem auto;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.empty-category:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+}
+
+.empty-category i {
+  font-size: 3.5rem;
+  color: var(--primary-color);
+  margin-bottom: var(--space-md);
+  opacity: 0.8;
+}
+
+.empty-category h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  color: var(--text-color);
+}
+
+.empty-category p {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.6;
 }
 
 /* Pagination */
@@ -1959,6 +1997,18 @@ button {
     gap: 15px;
   }
 
+  .empty-category {
+    padding: var(--space-lg);
+  }
+
+  .empty-category i {
+    font-size: 3rem;
+  }
+
+  .empty-category h3 {
+    font-size: 1.3rem;
+  }
+
   /* Contact */
   .contact-info-container {
     grid-template-columns: 1fr;
@@ -2170,33 +2220,32 @@ button {
 .reveal-item.reveal-visible {
   opacity: 1;
   transform: translateY(0);
+  transition-delay: calc(var(--reveal-delay) * var(--reveal-index));
 }
 
-/* Tutarlı hover geçişleri için özel stiller */
-.reveal-item.reveal-visible {
-  transition:
-    opacity 0.6s ease,
-    transform 0.6s ease,
-    box-shadow 0.5s ease,
-    color 0.3s ease,
-    background-color 0.3s ease;
+/* Reveal item hover effects */
+
+.resume-button.reveal-visible:hover,
+.resume-button.reveal-item.reveal-visible:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background-color: var(--primary-dark);
 }
 
-.contact-item.reveal-item.reveal-visible {
-  transform: translateY(0);
+.skills-category.reveal-visible:hover,
+.skills-category.reveal-item.reveal-visible:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
 }
 
+.empty-category.reveal-visible:hover,
+.empty-category.reveal-item.reveal-visible:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+}
+
+.contact-item.reveal-visible:hover,
 .contact-item.reveal-item.reveal-visible:hover {
   transform: translateY(-8px) scale(1.02);
   box-shadow: 0 22px 40px rgba(0, 0, 0, 0.1);
-}
-
-.resume-button.reveal-item.reveal-visible {
-  transform: translateY(0);
-}
-
-.resume-button.reveal-item.reveal-visible:hover {
-  background-color: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
 }

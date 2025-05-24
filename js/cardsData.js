@@ -47,7 +47,7 @@ export const cardsData = [
     slug: "project-title-3",
     tags: "React Native, Firebase",
     description: "A mobile app for fitness tracking and nutrition logs.",
-    category: "mobile",
+    category: "backend",
     images: [
       "./assets/images/sample3.png",
       "./assets/images/sample2.png",
@@ -104,7 +104,7 @@ export const cardsData = [
     slug: "project-title-6",
     tags: "Flutter, Firebase",
     description: "A cross-platform mobile app for task management.",
-    category: "mobile",
+    category: "backend",
     images: [
       "./assets/images/sample6.png",
       "./assets/images/sample2.png",

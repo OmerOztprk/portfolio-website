@@ -1,8 +1,8 @@
 /**
- * Portfolio Cards - Main JavaScript Module
+ * Portfolio Cards - Advanced JavaScript Module
  * 
- * Modern, performant ve erişilebilir portfolio uygulaması
- * Modüler mimari ile geliştirilmiş, temiz kod prensiplerine uygun
+ * Modern, performant and accessible portfolio application
+ * Built with clean code principles and modular architecture
  */
 
 // =================== IMPORTS ===================
@@ -10,18 +10,18 @@ import { cardsData } from "./cardsData.js";
 
 // =================== CONFIGURATION ===================
 const CONFIG = Object.freeze({
-  // Sayfalama
+  // Pagination settings
   cardsPerPage: 6,
   maxPaginationPages: 3,
 
-  // Görsel ayarları
+  // Media settings
   fallbackImage: "./assets/images/default.png",
 
-  // Slayt gösterisi
+  // Slideshow settings
   autoSlideInterval: 3000,
   resumeSlideTimeout: 2000,
 
-  // Animasyonlar
+  // Animation settings
   typewriter: {
     speed: 100,
     deleteSpeed: 50,
@@ -29,16 +29,15 @@ const CONFIG = Object.freeze({
     initialDelay: 300
   },
 
-  // Performans
+  // Performance settings
   debounceDelay: 150,
   scrollOffset: 80,
 
-  // Yeni scroll ayarları ekleyin
+  // Scroll animation settings
   scrollAnimation: {
-    duration: window.innerWidth <= 768 ? 1500 : 1200,  // Mobilde daha yavaş
-    easing: 'easeInOutCubic'  // Animasyon easing'i
-  },
-  // ...existing code...
+    duration: window.matchMedia('(max-width: 768px)').matches ? 1500 : 1200,
+    easing: 'easeInOutCubic'
+  }
 });
 
 // =================== STATE MANAGEMENT ===================
@@ -48,13 +47,11 @@ class AppState {
   }
 
   reset() {
-    // Kart yönetimi
     this.cards = [];
     this.filteredCards = [];
     this.currentPage = 1;
     this.activeFilter = 'all';
 
-    // Modal yönetimi
     this.modal = {
       imageList: [],
       currentIndex: 0,
@@ -62,10 +59,7 @@ class AppState {
       savedScrollPosition: 0
     };
 
-    // Zamanlayıcılar
     this.timers = new Map();
-
-    // UI durumları
     this.ui = {
       isMobileMenuOpen: false,
       isScrolling: false
@@ -74,7 +68,7 @@ class AppState {
     this.clearAllTimers();
   }
 
-  // Zamanlayıcı yönetimi
+  // Timer management methods
   setTimer(name, callback, delay) {
     this.clearTimer(name);
     this.timers.set(name, setTimeout(callback, delay));
@@ -103,7 +97,6 @@ class AppState {
   }
 }
 
-// Global state instance
 const state = new AppState();
 
 // =================== DOM UTILITIES ===================
@@ -111,6 +104,7 @@ class DOMUtils {
   static cache = new Map();
   static cacheEnabled = true;
 
+  // Element selector with caching
   static $(selector, context = document, useCache = true) {
     if (!this.cacheEnabled || !useCache) {
       return context.querySelector(selector);
@@ -126,7 +120,6 @@ class DOMUtils {
     }
 
     const cached = this.cache.get(key);
-    // Element hala DOM'da mı kontrol et
     if (cached && !document.contains(cached)) {
       this.cache.delete(key);
       return context.querySelector(selector);
@@ -135,6 +128,7 @@ class DOMUtils {
     return cached;
   }
 
+  // Multiple elements selector with caching
   static $$(selector, context = document) {
     const key = `${selector}-all-${context === document ? 'doc' : 'ctx'}`;
     if (!this.cache.has(key)) {
@@ -143,6 +137,7 @@ class DOMUtils {
     return this.cache.get(key);
   }
 
+  // Element creation helper
   static createElement(tag, className, content) {
     const element = document.createElement(tag);
     if (className) element.className = className;
@@ -150,6 +145,7 @@ class DOMUtils {
     return element;
   }
 
+  // Attribute setting helper
   static setAttributes(element, attributes) {
     if (!element || !attributes) return element;
 
@@ -166,6 +162,7 @@ class DOMUtils {
     return element;
   }
 
+  // CSS animation helper
   static animateCSS(element, animationName, callback) {
     element.classList.add('animate__animated', `animate__${animationName}`);
 
@@ -178,6 +175,7 @@ class DOMUtils {
     element.addEventListener('animationend', handleAnimationEnd);
   }
 
+  // Cache management
   static clearCache() {
     this.cache.clear();
   }
@@ -190,6 +188,7 @@ class DOMUtils {
 
 // =================== UTILITY FUNCTIONS ===================
 const Utils = {
+  // Performance utilities
   debounce(func, delay = CONFIG.debounceDelay) {
     let timer;
     return function (...args) {
@@ -209,10 +208,12 @@ const Utils = {
     };
   },
 
+  // Math utilities
   clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   },
 
+  // Scroll and navigation utilities
   getVisibleSections() {
     const sections = DOMUtils.$$('section[id]');
     const viewportHeight = window.innerHeight;
@@ -243,13 +244,14 @@ const Utils = {
     });
   },
 
-  // Easing fonksiyonları ekleyin
+  // Easing functions for smooth animations
   easing: {
     easeInOutCubic: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
     easeOutQuart: (t) => 1 - Math.pow(1 - t, 4),
     easeInOutQuart: (t) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2
   },
 
+  // Smooth scroll implementation
   smoothScrollTo(target, callback) {
     const element = typeof target === 'string' ? DOMUtils.$(target) : target;
     if (!element) return;
@@ -275,7 +277,6 @@ const Utils = {
       if (progress < 1) {
         requestAnimationFrame(animateScroll);
       } else if (callback) {
-        // Animasyon bittiğinde callback'i çağır
         callback();
       }
     };
@@ -283,6 +284,7 @@ const Utils = {
     requestAnimationFrame(animateScroll);
   },
 
+  // String utilities
   formatProjectSlug(title) {
     return title
       .toLowerCase()
@@ -293,6 +295,7 @@ const Utils = {
 
 // =================== ACCESSIBILITY MANAGER ===================
 class AccessibilityManager {
+  // Focus trap for modal dialogs
   static trapFocus(element) {
     if (!element) return;
 
@@ -326,6 +329,7 @@ class AccessibilityManager {
     };
   }
 
+  // Remove focus trap
   static removeFocusTrap(element) {
     if (element?._focusTrapHandler) {
       element.removeEventListener('keydown', element._focusTrapHandler);
@@ -333,6 +337,7 @@ class AccessibilityManager {
     }
   }
 
+  // Screen reader announcements
   static announceToScreenReader(message, priority = 'polite') {
     const announcement = DOMUtils.createElement('div', 'sr-only');
     announcement.setAttribute('aria-live', priority);
@@ -349,11 +354,12 @@ class AccessibilityManager {
 // =================== CARD MANAGEMENT MODULE ===================
 class CardManager {
   constructor() {
-    this.modalManager = null; // Reference ekle
+    this.modalManager = null;
     this.initializeElements();
     this.bindEvents();
   }
 
+  // Initialize DOM elements
   initializeElements() {
     this.elements = {
       grid: DOMUtils.$('.cards-grid'),
@@ -363,27 +369,28 @@ class CardManager {
     };
   }
 
+  // Bind event listeners
   bindEvents() {
-    // Kart detay butonları için event delegation
+    // Card detail buttons event delegation
     this.elements.grid?.addEventListener('click', (e) => {
       const detailsBtn = e.target.closest('.view-details-btn');
       if (detailsBtn) {
         const card = detailsBtn.closest('.card-item');
-        // GÜVENLE modalManager kullan
         if (this.modalManager || window.modalManager) {
           (this.modalManager || window.modalManager).openFromCard(card);
         } else {
-          console.warn('Modal manager henüz hazır değil');
+          console.warn('Modal manager not ready yet.');
         }
       }
     });
 
-    // Filtre butonları
+    // Filter buttons
     this.elements.filters.forEach(button => {
       button.addEventListener('click', () => this.handleFilterChange(button));
     });
   }
 
+  // Card creation and rendering
   createCards() {
     if (!this.elements.grid || !cardsData.length) return;
 
@@ -404,6 +411,7 @@ class CardManager {
     this.renderPagination();
   }
 
+  // Create individual card element
   createCardElement(item) {
     const card = DOMUtils.createElement('div', 'card-item');
 
@@ -446,6 +454,7 @@ class CardManager {
     return card;
   }
 
+  // Helper methods for card links
   getLinkIconClass(icon) {
     if (icon.includes('github')) return 'github-icon';
     if (icon.includes('play')) return 'play-icon';
@@ -458,8 +467,9 @@ class CardManager {
     return `External link for ${title}`;
   }
 
+  // Filter handling
   handleFilterChange(button) {
-    // UI güncelleme
+    // Update UI
     this.elements.filters.forEach(btn => {
       btn.classList.remove('active');
       btn.setAttribute('aria-pressed', 'false');
@@ -468,7 +478,7 @@ class CardManager {
     button.classList.add('active');
     button.setAttribute('aria-pressed', 'true');
 
-    // Filtreleme
+    // Apply filter
     const filter = button.dataset.filter;
     state.activeFilter = filter;
     this.filterCards(filter);
@@ -494,24 +504,24 @@ class CardManager {
     }
   }
 
+  // Pagination methods
   showPage(page) {
-    // Tüm kartları gizle
+    // Hide all cards
     state.cards.forEach(card => {
       card.style.display = 'none';
       card.classList.add('hide');
     });
 
-    // Sayfa kartlarını göster
+    // Show page cards
     const start = (page - 1) * CONFIG.cardsPerPage;
     const pageCards = state.filteredCards.slice(start, start + CONFIG.cardsPerPage);
 
     pageCards.forEach((card) => {
       card.style.display = 'flex';
-      // Tüm kartlar aynı anda gösterilecek
       card.classList.remove('hide');
     });
 
-    // Pagination görünürlüğü
+    // Toggle pagination visibility
     if (this.elements.pagination) {
       this.elements.pagination.style.display =
         state.filteredCards.length > CONFIG.cardsPerPage ? 'flex' : 'none';
@@ -526,13 +536,13 @@ class CardManager {
 
     if (totalPages <= 1) return;
 
-    // Önceki sayfa
+    // Previous page button
     this.addNavigationButton('prev', state.currentPage === 1);
 
-    // Sayfa numaraları
+    // Page numbers
     this.addPageNumbers(totalPages);
 
-    // Sonraki sayfa
+    // Next page button
     this.addNavigationButton('next', state.currentPage === totalPages);
   }
 
@@ -568,7 +578,7 @@ class CardManager {
       start = Math.max(1, end - maxPages + 1);
     }
 
-    // İlk sayfa + dots
+    // First page + dots
     if (start > 1) {
       this.addPageButton(1);
       if (start > 2) {
@@ -576,12 +586,12 @@ class CardManager {
       }
     }
 
-    // Orta sayfalar
+    // Middle pages
     for (let i = start; i <= end; i++) {
       this.addPageButton(i);
     }
 
-    // Dots + son sayfa
+    // Dots + last page
     if (end < totalPages) {
       if (end < totalPages - 1) {
         this.elements.pagination.appendChild(this.createDots());
@@ -613,6 +623,7 @@ class CardManager {
     return DOMUtils.createElement('span', 'pagination-dots', '…');
   }
 
+  // Empty state handling
   showEmptyMessage(filter) {
     if (!this.elements.emptyMessage) return;
 
@@ -637,6 +648,7 @@ class CardManager {
     }
   }
 
+  // Set modal manager reference
   setModalManager(modalManager) {
     this.modalManager = modalManager;
   }
@@ -647,11 +659,12 @@ class ModalManager {
   constructor() {
     this.cleanupHandlers = [];
     this.boundHandlers = this.createBoundHandlers();
-    this.currentCard = null; // Mevcut kart referansını sakla
+    this.currentCard = null;
     this.initializeElements();
     this.bindEvents();
   }
 
+  // Initialize DOM elements
   initializeElements() {
     this.elements = {
       overlay: DOMUtils.$('.modal-overlay'),
@@ -666,6 +679,7 @@ class ModalManager {
     };
   }
 
+  // Create bound event handlers
   createBoundHandlers() {
     return {
       pauseSlide: () => this.pauseSlideshow(),
@@ -679,27 +693,141 @@ class ModalManager {
     };
   }
 
+  // Bind basic event listeners
   bindEvents() {
-    // Kapat butonu
     this.elements.closeBtn?.addEventListener('click', () => this.close());
-
-    // Navigasyon butonları
     this.elements.prevBtn?.addEventListener('click', () => this.navigateImage(-1));
     this.elements.nextBtn?.addEventListener('click', () => this.navigateImage(1));
 
-    // Klavye navigasyonu
     this.keydownHandler = this.boundHandlers.keydownHandler;
 
-    // Overlay'e tıklayınca kapat
     this.elements.overlay?.addEventListener('click', (e) => {
       if (e.target === this.elements.overlay) this.close();
     });
   }
 
+  // Modal opening and content management
+  openFromCard(card) {
+    if (!card || !this.elements.overlay) return;
+
+    try {
+      this.currentCard = card;
+
+      state.modal.imageList = card.dataset.images.split(',');
+      state.modal.currentIndex = 0;
+      state.modal.savedScrollPosition = window.scrollY;
+
+      this.updateModalStaticContent();
+      this.updateModalImageAndEvents();
+      this.buildThumbnails();
+
+      this.show();
+      this.startSlideshow();
+
+      // Update URL
+      const slug = card.dataset.projectSlug;
+      history.replaceState(
+        { slug, scrollY: state.modal.savedScrollPosition },
+        '',
+        `#projects/${slug}`
+      );
+    } catch (error) {
+      console.error('Error opening modal:', error);
+      this.close();
+    }
+  }
+
+  updateModalStaticContent() {
+    if (!this.currentCard) return;
+
+    const title = this.currentCard.querySelector('.card-title')?.textContent || '';
+    const tags = this.currentCard.querySelector('.card-tags')?.textContent || '';
+    const description = this.currentCard.querySelector('.card-description')?.textContent || '';
+
+    if (this.elements.title) this.elements.title.textContent = title;
+    if (this.elements.tags) this.elements.tags.textContent = tags;
+    if (this.elements.description) this.elements.description.textContent = description;
+
+    this.updateActionButtons();
+  }
+
+  updateModalImageAndEvents() {
+    const imageElement = DOMUtils.$('.modal-img');
+
+    if (imageElement) {
+      imageElement.src = state.modal.imageList[state.modal.currentIndex];
+      imageElement.alt = this.currentCard?.querySelector('.card-title')?.textContent || 'Project image';
+
+      imageElement.draggable = false;
+      imageElement.setAttribute('draggable', 'false');
+
+      this.setupImagePauseEvents(imageElement);
+    } else {
+      console.warn('Modal image element not found');
+    }
+  }
+
+  updateActionButtons() {
+    if (!this.currentCard) return;
+
+    const links = this.currentCard.querySelectorAll('.card-link-item');
+
+    this.elements.buttons.forEach((button, index) => {
+      if (links[index]) {
+        button.href = links[index].href;
+        const linkText = index === 0 ? 'Live Demo' : 'Source Code';
+        button.setAttribute('aria-label', `${linkText} for ${this.elements.title?.textContent || 'project'}`);
+      }
+    });
+  }
+
+  // Image navigation and slideshow
+  switchToImage(index) {
+    this.pauseSlideshow();
+    state.modal.currentIndex = index;
+
+    this.updateModalImageAndEvents();
+    this.highlightThumbnail(index);
+
+    state.setTimer('resumeSlideshow', () => this.resumeSlideshow(), CONFIG.resumeSlideTimeout);
+  }
+
+  navigateImage(direction) {
+    this.pauseSlideshow();
+
+    const newIndex = (state.modal.currentIndex + direction + state.modal.imageList.length) % state.modal.imageList.length;
+    this.switchToImage(newIndex);
+  }
+
+  // Slideshow control methods
+  startSlideshow() {
+    if (state.modal.imageList.length <= 1) return;
+
+    state.modal.isSlideActive = true;
+    state.setInterval('slideshow', () => {
+      if (state.modal.isSlideActive) {
+        this.navigateImage(1);
+      }
+    }, CONFIG.autoSlideInterval);
+  }
+
+  pauseSlideshow() {
+    state.modal.isSlideActive = false;
+    state.clearTimer('slideshow');
+    state.clearTimer('resumeSlideshow');
+  }
+
+  resumeSlideshow() {
+    if (this.elements.overlay.style.display === 'flex') {
+      this.startSlideshow();
+    }
+  }
+
+  // Thumbnail management
   buildThumbnails() {
     if (!this.elements.thumbsContainer) return;
 
-    this.cleanupThumbnails(); // Önce var olanları temizle
+    this.cleanupThumbnails();
     this.elements.thumbsContainer.innerHTML = '';
 
     const fragment = document.createDocumentFragment();
@@ -710,9 +838,8 @@ class ModalManager {
       thumb.loading = 'lazy';
       thumb.dataset.index = index;
 
-      // Sürüklemeyi engelle
       thumb.draggable = false;
-      thumb.setAttribute('draggable', 'false'); // Ekstra güvence
+      thumb.setAttribute('draggable', 'false');
 
       DOMUtils.setAttributes(thumb, {
         'aria-label': `Image ${index + 1} of ${state.modal.imageList.length}`,
@@ -729,7 +856,6 @@ class ModalManager {
         }
       };
 
-      // Sürükleme olaylarını engellemek için handler
       const preventDragHandler = (e) => {
         e.preventDefault();
         return false;
@@ -737,173 +863,26 @@ class ModalManager {
 
       thumb.addEventListener('click', clickHandler);
       thumb.addEventListener('keydown', keyHandler);
-      thumb.addEventListener('dragstart', preventDragHandler); // Sürükleme başlangıcını engelle
-      thumb.addEventListener('selectstart', preventDragHandler); // Metin seçimi gibi sürüklemeyi de engeller
+      thumb.addEventListener('dragstart', preventDragHandler);
+      thumb.addEventListener('selectstart', preventDragHandler);
 
       thumb._clickHandler = clickHandler;
       thumb._keyHandler = keyHandler;
-      thumb._preventDragHandler = preventDragHandler; // Temizlik için sakla
+      thumb._preventDragHandler = preventDragHandler;
 
       fragment.appendChild(thumb);
     });
 
     this.elements.thumbsContainer.appendChild(fragment);
-
-    // Thumbnails container için scroll event listener'ı ekle
     this.setupThumbnailScrolling();
-
 
     requestAnimationFrame(() => {
       this.highlightThumbnail(state.modal.currentIndex);
     });
   }
 
-  setupThumbnailScrolling() {
-    if (this.elements.thumbsContainer) {
-      // Önce varsa eski listener'ı kaldır
-      this.elements.thumbsContainer.removeEventListener('wheel', this.boundHandlers.handleThumbnailScroll);
-
-      // Yeni listener ekle
-      this.elements.thumbsContainer.addEventListener('wheel', this.boundHandlers.handleThumbnailScroll, { passive: false });
-    }
-  }
-
-  openFromCard(card) {
-    if (!card || !this.elements.overlay) return;
-
-    try {
-      // Kart referansını sakla
-      this.currentCard = card; // Set currentCard here
-
-      // Modal state'ini ayarla
-      state.modal.imageList = card.dataset.images.split(',');
-      state.modal.currentIndex = 0;
-      state.modal.savedScrollPosition = window.scrollY;
-
-      // İçeriği güncelle (statik kısımlar)
-      this.updateModalStaticContent();
-      // Resmi ve olaylarını güncelle
-      this.updateModalImageAndEvents();
-      this.buildThumbnails();
-
-      // Modal'ı göster
-      this.show();
-
-      // Slayt gösterisini başlat
-      this.startSlideshow();
-
-      // URL'yi güncelle
-      const slug = card.dataset.projectSlug;
-      history.replaceState(
-        { slug, scrollY: state.modal.savedScrollPosition },
-        '',
-        `#projects/${slug}`
-      );
-    } catch (error) {
-      console.error('Modal açılırken hata:', error);
-      this.close();
-    }
-  }
-
-  // setupImagePauseEvents metodunu güncelle
-  setupImagePauseEvents(imageElement = null) {
-    // ✅ DÜZELTME: Parametre olarak al, yoksa fresh bul
-    const element = imageElement || DOMUtils.$('.modal-img');
-
-    if (!element) {
-      console.warn('Modal image element bulunamadı (setupImagePauseEvents)');
-      return;
-    }
-
-    // Önce temizle (cache'lenmiş elementi kullanmak yerine parametreyi kullan)
-    this.cleanupImagePauseEvents(element);
-
-    element.addEventListener("mousedown", this.boundHandlers.pauseSlide);
-    element.addEventListener("mouseup", this.boundHandlers.handleMouseUp);
-    element.addEventListener("mouseleave", this.boundHandlers.handleMouseUp);
-    element.addEventListener("touchstart", this.boundHandlers.pauseSlide, { passive: true });
-    element.addEventListener("touchend", this.boundHandlers.handleMouseUp);
-    element.addEventListener("touchcancel", this.boundHandlers.handleMouseUp);
-
-    if (this.boundHandlers.preventImageDrag) {
-      element.addEventListener('dragstart', this.boundHandlers.preventImageDrag);
-      element.addEventListener('selectstart', this.boundHandlers.preventImageDrag);
-    }
-
-    // ✅ DÜZELTME: Sadece temizlik için cache'le
-    this.elements.image = element;
-  }
-
-  // Sadece modal ilk açıldığında çağrılacak statik içerik güncellemeleri
-  updateModalStaticContent() {
-    if (!this.currentCard) return;
-
-    const title = this.currentCard.querySelector('.card-title')?.textContent || '';
-    const tags = this.currentCard.querySelector('.card-tags')?.textContent || '';
-    const description = this.currentCard.querySelector('.card-description')?.textContent || '';
-
-    if (this.elements.title) this.elements.title.textContent = title;
-    if (this.elements.tags) this.elements.tags.textContent = tags;
-    if (this.elements.description) this.elements.description.textContent = description;
-
-    this.updateActionButtons();
-  }
-
-  // Resim değiştiğinde çağrılacak resim ve olay güncellemeleri
-  updateModalImageAndEvents() {
-    // Her seferinde fresh al
-    const imageElement = DOMUtils.$('.modal-img');
-
-    if (imageElement) {
-      imageElement.src = state.modal.imageList[state.modal.currentIndex];
-      imageElement.alt = this.currentCard?.querySelector('.card-title')?.textContent || 'Project image';
-
-      imageElement.draggable = false;
-      imageElement.setAttribute('draggable', 'false');
-
-      // ✅ DÜZELTME: Cache'e atmak yerine direkt setupImagePauseEvents'e geçir
-      this.setupImagePauseEvents(imageElement);
-    } else {
-      console.warn('Modal image element bulunamadı');
-    }
-  }
-
-  updateActionButtons() { // Bu metod updateModalStaticContent içinden çağrılabilir
-    if (!this.currentCard) return;
-
-    const links = this.currentCard.querySelectorAll('.card-link-item');
-
-    this.elements.buttons.forEach((button, index) => {
-      if (links[index]) {
-        button.href = links[index].href;
-        const linkText = index === 0 ? 'Live Demo' : 'Source Code';
-        button.setAttribute('aria-label', `${linkText} for ${this.elements.title?.textContent || 'project'}`);
-      }
-    });
-  }
-
-  switchToImage(index) {
-    this.pauseSlideshow();
-    state.modal.currentIndex = index;
-
-    // Sadece resmi ve olaylarını güncelle
-    this.updateModalImageAndEvents();
-
-    this.highlightThumbnail(index);
-
-    // Slayt gösterisini yeniden başlat
-    state.setTimer('resumeSlideshow', () => this.resumeSlideshow(), CONFIG.resumeSlideTimeout);
-  }
-
-  navigateImage(direction) {
-    this.pauseSlideshow();
-
-    const newIndex = (state.modal.currentIndex + direction + state.modal.imageList.length) % state.modal.imageList.length;
-    this.switchToImage(newIndex);
-  }
-
   highlightThumbnail(index) {
-    if (!this.elements.thumbsContainer) return; // thumbsContainer yoksa işlem yapma
+    if (!this.elements.thumbsContainer) return;
 
     const thumbs = this.elements.thumbsContainer.querySelectorAll('.modal-thumb');
     thumbs.forEach(thumb => {
@@ -921,26 +900,36 @@ class ModalManager {
     });
   }
 
-  startSlideshow() {
-    if (state.modal.imageList.length <= 1) return;
+  // Event handling methods
+  setupImagePauseEvents(imageElement = null) {
+    const element = imageElement || DOMUtils.$('.modal-img');
 
-    state.modal.isSlideActive = true;
-    state.setInterval('slideshow', () => {
-      if (state.modal.isSlideActive) {
-        this.navigateImage(1);
-      }
-    }, CONFIG.autoSlideInterval);
+    if (!element) {
+      console.warn('Modal image element not found (setupImagePauseEvents)');
+      return;
+    }
+
+    this.cleanupImagePauseEvents(element);
+
+    element.addEventListener("mousedown", this.boundHandlers.pauseSlide);
+    element.addEventListener("mouseup", this.boundHandlers.handleMouseUp);
+    element.addEventListener("mouseleave", this.boundHandlers.handleMouseUp);
+    element.addEventListener("touchstart", this.boundHandlers.pauseSlide, { passive: true });
+    element.addEventListener("touchend", this.boundHandlers.handleMouseUp);
+    element.addEventListener("touchcancel", this.boundHandlers.handleMouseUp);
+
+    if (this.boundHandlers.preventImageDrag) {
+      element.addEventListener('dragstart', this.boundHandlers.preventImageDrag);
+      element.addEventListener('selectstart', this.boundHandlers.preventImageDrag);
+    }
+
+    this.elements.image = element;
   }
 
-  pauseSlideshow() {
-    state.modal.isSlideActive = false;
-    state.clearTimer('slideshow'); // Ana slayt gösterisi interval'ını temizler
-    state.clearTimer('resumeSlideshow'); // Bekleyen "devam et" timeout'unu da temizler
-  }
-
-  resumeSlideshow() {
-    if (this.elements.overlay.style.display === 'flex') {
-      this.startSlideshow();
+  setupThumbnailScrolling() {
+    if (this.elements.thumbsContainer) {
+      this.elements.thumbsContainer.removeEventListener('wheel', this.boundHandlers.handleThumbnailScroll);
+      this.elements.thumbsContainer.addEventListener('wheel', this.boundHandlers.handleThumbnailScroll, { passive: false });
     }
   }
 
@@ -954,22 +943,87 @@ class ModalManager {
     }
   }
 
-  /**
-   * Slayt gösterisini devam ettirmek için fare/dokunma olayını işle
-   */
   handleMouseUp() {
     state.clearTimer('resumeSlideshow');
     state.setTimer('resumeSlideshow', () => {
-      // Modalın hala açık ve görünür olduğunu kontrol etmek iyi bir pratiktir.
-      if (this.elements.overlay?.style.display === 'flex' && state.modal.isSlideActive === false) { // Sadece slayt duraklatılmışsa devam et
+      if (this.elements.overlay?.style.display === 'flex' && state.modal.isSlideActive === false) {
         this.resumeSlideshow();
       }
-    }, 1000); // Bu süre (1000ms) CONFIG.resumeSlideTimeout (2000ms) ile farklı, bilinçli bir tercih olabilir.
+    }, 1000);
   }
 
-  // cleanupImagePauseEvents metodunu da güncelle
+  handleThumbnailScroll(e) {
+    if (this.elements.thumbsContainer) {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        this.elements.thumbsContainer.scrollLeft += e.deltaY;
+      }
+    }
+  }
+
+  // Modal display methods
+  show() {
+    this.elements.overlay.style.display = 'flex';
+
+    if (window.portfolioApp?.managers?.navigation) {
+      window.portfolioApp.managers.navigation.setModalState(true);
+    }
+
+    document.body.style.cssText = `
+      overflow: hidden;
+      position: fixed;
+      top: -${state.modal.savedScrollPosition}px;
+      width: 100%;
+    `;
+
+    const removeFocusTrap = AccessibilityManager.trapFocus(this.elements.overlay);
+    this.cleanupHandlers.push(removeFocusTrap);
+
+    window.addEventListener('keydown', this.keydownHandler);
+
+    state.setTimer('focusCloseBtn', () => {
+      this.elements.closeBtn?.focus();
+    }, 100);
+  }
+
+  close() {
+    this.cleanupThumbnails();
+    this.cleanupImagePauseEvents();
+
+    this.elements.overlay.style.display = 'none';
+
+    if (window.portfolioApp?.managers?.navigation) {
+      window.portfolioApp.managers.navigation.setModalState(false);
+    }
+
+    this.pauseSlideshow();
+
+    window.removeEventListener('keydown', this.keydownHandler);
+
+    if (this.elements.thumbsContainer) {
+      this.elements.thumbsContainer.removeEventListener('wheel', this.boundHandlers.handleThumbnailScroll);
+    }
+
+    this.cleanupHandlers.forEach(cleanup => cleanup?.());
+    this.cleanupHandlers = [];
+
+    document.body.style.cssText = '';
+    window.scrollTo({
+      top: state.modal.savedScrollPosition,
+      behavior: 'instant'
+    });
+
+    const hash = window.location.hash;
+    if (hash.startsWith('#projects/')) {
+      history.replaceState({}, '', '#projects');
+    }
+
+    this.elements.image = null;
+    this.currentCard = null;
+  }
+
+  // Cleanup methods
   cleanupImagePauseEvents(imageElement = null) {
-    // ✅ DÜZELTME: Parametre olarak al, yoksa cache'den al
     const element = imageElement || this.elements.image;
 
     if (element) {
@@ -989,91 +1043,6 @@ class ModalManager {
     }
   }
 
-  handleThumbnailScroll(e) {
-    if (this.elements.thumbsContainer) {
-      // e.deltaY değeri dikey tekerlek hareketini verir.
-      // Yatay scroll için bunu scrollLeft'e ekliyoruz.
-      // e.preventDefault() çağrısı, sayfanın dikey olarak kaymasını engeller.
-      if (e.deltaY !== 0) {
-        e.preventDefault();
-        this.elements.thumbsContainer.scrollLeft += e.deltaY;
-      }
-    }
-  }
-
-  show() {
-    this.elements.overlay.style.display = 'flex';
-
-    // Navigation manager'a modal açıldığını bildir
-    if (window.portfolioApp?.managers?.navigation) {
-      window.portfolioApp.managers.navigation.setModalState(true);
-    }
-
-    // Body scroll'unu kilitle
-    document.body.style.cssText = `
-      overflow: hidden;
-      position: fixed;
-      top: -${state.modal.savedScrollPosition}px;
-      width: 100%;
-    `;
-
-    // Accessibility
-    const removeFocusTrap = AccessibilityManager.trapFocus(this.elements.overlay);
-    this.cleanupHandlers.push(removeFocusTrap);
-
-    window.addEventListener('keydown', this.keydownHandler);
-
-    // Odağı kapat butonuna ayarla
-    state.setTimer('focusCloseBtn', () => {
-      this.elements.closeBtn?.focus();
-    }, 100);
-  }
-
-  close() {
-    this.cleanupThumbnails();
-    this.cleanupImagePauseEvents();
-
-    // Modal'ı gizle
-    this.elements.overlay.style.display = 'none';
-
-    // Navigation manager'a modal kapandığını bildir
-    if (window.portfolioApp?.managers?.navigation) {
-      window.portfolioApp.managers.navigation.setModalState(false);
-    }
-
-    // Slayt gösterisini durdur
-    this.pauseSlideshow();
-
-    // Event listener'ları temizle
-    window.removeEventListener('keydown', this.keydownHandler);
-
-    // ✅ THUMBNAIL SCROLL LISTENER'I BURADA KALDIR
-    if (this.elements.thumbsContainer) {
-      this.elements.thumbsContainer.removeEventListener('wheel', this.boundHandlers.handleThumbnailScroll);
-    }
-
-    this.cleanupHandlers.forEach(cleanup => cleanup?.());
-    this.cleanupHandlers = [];
-
-    // Scroll'u geri yükle
-    document.body.style.cssText = '';
-    window.scrollTo({
-      top: state.modal.savedScrollPosition,
-      behavior: 'instant'
-    });
-
-    // URL'yi temizle
-    const hash = window.location.hash;
-    if (hash.startsWith('#projects/')) {
-      history.replaceState({}, '', '#projects');
-    }
-
-    // Kart referansını temizle
-    this.elements.image = null; // Temizle
-    this.currentCard = null;
-  }
-
-  // Event listener temizleme
   cleanupThumbnails() {
     if (!this.elements.thumbsContainer) return;
 
@@ -1087,7 +1056,6 @@ class ModalManager {
         thumb.removeEventListener('keydown', thumb._keyHandler);
         delete thumb._keyHandler;
       }
-      // Sürükleme engelleyici event listener'ları temizle
       if (thumb._preventDragHandler) {
         thumb.removeEventListener('dragstart', thumb._preventDragHandler);
         thumb.removeEventListener('selectstart', thumb._preventDragHandler);
@@ -1103,14 +1071,14 @@ class NavigationManager {
     this.scrollHandlers = new Set();
     this.isNavigating = false;
     this.boundHandlers = new Map();
-    this.isModalOpen = false; // Modal durumu tracking
+    this.isModalOpen = false;
 
     this.initializeElements();
     this.bindEvents();
     this.initScrollHeaderEffect();
   }
 
-
+  // Initialize DOM elements
   initializeElements() {
     this.elements = {
       mobileToggle: DOMUtils.$('.mobile-menu-toggle'),
@@ -1121,20 +1089,21 @@ class NavigationManager {
     };
   }
 
+  // Bind navigation events
   bindEvents() {
     // Mobile menu toggle
     const mobileToggleHandler = () => this.toggleMobileMenu();
     this.boundHandlers.set('mobileToggle', mobileToggleHandler);
     this.elements.mobileToggle?.addEventListener('click', mobileToggleHandler);
 
-    // Navigasyon linkleri
+    // Navigation links
     this.elements.navLinks.forEach(link => {
       const handler = () => this.closeMobileMenu();
       link.addEventListener('click', handler);
       this.boundHandlers.set(link, handler);
     });
 
-    // Dışarı tıklama
+    // Outside click handling
     const outsideClickHandler = (e) => this.handleOutsideClick(e);
     this.boundHandlers.set('outsideClick', outsideClickHandler);
     document.addEventListener('click', outsideClickHandler);
@@ -1143,6 +1112,7 @@ class NavigationManager {
     this.initScrollHandling();
   }
 
+  // Mobile menu methods
   toggleMobileMenu() {
     state.ui.isMobileMenuOpen = !state.ui.isMobileMenuOpen;
     document.body.classList.toggle('mobile-menu-open', state.ui.isMobileMenuOpen);
@@ -1169,14 +1139,15 @@ class NavigationManager {
     }
   }
 
+  // Active link management
   setActiveLink(activeLink) {
     this.elements.navLinks.forEach(link => link.classList.remove('active'));
     activeLink.classList.add('active');
   }
 
+  // Smooth scrolling setup
   initSmoothScrolling() {
     this.elements.internalLinks.forEach(link => {
-      // Modal butonlarını atla
       if (link.closest('.modal-buttons')) return;
 
       link.addEventListener('click', (e) => {
@@ -1184,14 +1155,11 @@ class NavigationManager {
         const targetId = link.getAttribute('href');
 
         if (targetId && targetId !== '#') {
-          // Programmatik navigasyon başladığını işaretle
           this.isNavigating = true;
 
           Utils.smoothScrollTo(targetId, () => {
-            // Animasyon bittiğinde URL'yi güncelle
             history.pushState(null, null, targetId);
 
-            // Programmatik navigasyon bittiğini işaretle
             setTimeout(() => {
               this.isNavigating = false;
             }, 100);
@@ -1200,11 +1168,10 @@ class NavigationManager {
       });
     });
 
-    // Scroll to top butonu - GÜVENLİ TARGET
+    // Scroll to top button
     this.elements.scrollToTop?.addEventListener('click', () => {
       this.isNavigating = true;
 
-      // document.documentElement daha güvenli
       const target = document.documentElement || document.body;
 
       window.scrollTo({
@@ -1212,18 +1179,17 @@ class NavigationManager {
         behavior: 'smooth'
       });
 
-      // Navigasyon bittiğini işaretle
       setTimeout(() => {
         this.isNavigating = false;
       }, CONFIG.scrollAnimation.duration + 100);
     });
   }
 
+  // Header scroll effect
   initScrollHeaderEffect() {
     let ticking = false;
 
     const updateHeader = () => {
-      // Modal açıkken scroll position'ı state'ten al
       const scrollY = this.isModalOpen ?
         (state.modal?.savedScrollPosition || 0) :
         window.scrollY;
@@ -1238,7 +1204,6 @@ class NavigationManager {
     };
 
     const onScroll = () => {
-      // Modal açıkken scroll event'lerini ignore et
       if (this.isModalOpen) return;
 
       if (!ticking) {
@@ -1253,9 +1218,9 @@ class NavigationManager {
     updateHeader();
   }
 
+  // Scroll-based updates
   initScrollHandling() {
     const scrollHandler = Utils.throttle(() => {
-      // Modal açıkken navigation güncellemelerini de durdur
       if (this.isModalOpen) return;
 
       this.updateActiveNavOnScroll();
@@ -1266,12 +1231,10 @@ class NavigationManager {
     this.scrollHandlers.add(scrollHandler);
   }
 
-  // Modal açıldığında çağrılacak
   setModalState(isOpen) {
     this.isModalOpen = isOpen;
 
     if (isOpen) {
-      // Modal açıldığında header state'ini manuel güncelle
       const scrollY = state.modal?.savedScrollPosition || 0;
       if (scrollY > 1) {
         this.elements.header?.classList.add('scrolled');
@@ -1279,13 +1242,9 @@ class NavigationManager {
         this.elements.header?.classList.remove('scrolled');
       }
     }
-    // Modal kapandığında scroll handler'lar zaten aktif olacak
   }
 
   updateActiveNavOnScroll() {
-    // İSTEĞE BAĞLI: isNavigating kontrolü eklenebilir
-    // if (this.isNavigating) return;
-
     const visibleSections = Utils.getVisibleSections();
 
     if (visibleSections.length > 0) {
@@ -1314,15 +1273,13 @@ class NavigationManager {
     }
   }
 
-  // CLEANUP METODU EKLENMELİ
+  // Cleanup method
   destroy() {
-    // Mobile toggle cleanup
     const mobileToggleHandler = this.boundHandlers.get('mobileToggle');
     if (mobileToggleHandler && this.elements.mobileToggle) {
       this.elements.mobileToggle.removeEventListener('click', mobileToggleHandler);
     }
 
-    // Nav links cleanup
     this.elements.navLinks.forEach(link => {
       const handler = this.boundHandlers.get(link);
       if (handler) {
@@ -1330,20 +1287,18 @@ class NavigationManager {
       }
     });
 
-    // Document click cleanup
     const outsideClickHandler = this.boundHandlers.get('outsideClick');
     if (outsideClickHandler) {
       document.removeEventListener('click', outsideClickHandler);
     }
 
-    // Scroll handlers cleanup
     this.scrollHandlers.forEach(handler => {
       window.removeEventListener('scroll', handler);
     });
     this.scrollHandlers.clear();
     this.boundHandlers.clear();
 
-    console.log('NavigationManager tamamen temizlendi');
+    console.log('NavigationManager completely cleaned up');
   }
 }
 
@@ -1353,6 +1308,7 @@ class AnimationManager {
     this.initializeElements();
   }
 
+  // Initialize DOM elements
   initializeElements() {
     this.elements = {
       professionText: DOMUtils.$('#profession-text'),
@@ -1360,15 +1316,14 @@ class AnimationManager {
     };
   }
 
+  // Typewriter animation
   initTypewriter() {
     if (!this.elements.professionText) return;
 
     const professions = [
-      'Web Developer',
-      'UI/UX Designer',
-      'Graphic Designer',
-      'Content Creator',
-      'Software Engineer'
+      "Full Stack Developer",
+      "AI-Powered App Creator",
+      "Game Dev Enthusiast",
     ];
 
     let currentIndex = 0;
@@ -1403,20 +1358,21 @@ class AnimationManager {
     state.setTimer('typewriterStart', typeEffect, 1000);
   }
 
+  // Update copyright year
   updateCopyrightYear() {
     if (this.elements.yearSpan) {
       this.elements.yearSpan.textContent = new Date().getFullYear();
     }
   }
 
+  // Scroll reveal animations
   initScrollRevealAnimations() {
     const sectionsToReveal = DOMUtils.$$('section#about, section#skills, section#projects, section#contact');
     if (!sectionsToReveal || sectionsToReveal.length === 0) {
-      console.warn('Reveal animasyonu için hedeflenecek bölüm bulunamadı.');
+      console.warn('No sections found for reveal animation.');
       return;
     }
 
-    // Her bölüm için farklı ayarlar
     const sectionConfigs = {
       'about': { rootMargin: '0px 0px -15% 0px', threshold: 0.05 },
       'skills': { rootMargin: '0px 0px -10% 0px', threshold: 0.05 },
@@ -1429,10 +1385,8 @@ class AnimationManager {
         if (entry.isIntersecting) {
           const section = entry.target;
           if (!section.classList.contains('is-visible')) {
-            // 1. Önce transition sınıfını ekle
             section.classList.add('reveal-transition');
 
-            // 2. Bir frame bekle, sonra visible sınıfını ekle
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
                 section.classList.add('is-visible');
@@ -1445,7 +1399,7 @@ class AnimationManager {
       });
     };
 
-    // Her bölüm için ayrı observer oluştur
+    // Create observers for each section
     sectionsToReveal.forEach(section => {
       const sectionId = section.id;
       const config = sectionConfigs[sectionId] || { rootMargin: '0px 0px -15% 0px', threshold: 0.05 };
@@ -1456,7 +1410,6 @@ class AnimationManager {
         threshold: config.threshold
       });
 
-      // Başlangıçta sadece reveal-section sınıfını ekle (transition yok)
       section.classList.add('reveal-section');
       observer.observe(section);
     });
@@ -1469,61 +1422,57 @@ class RouteManager {
     this.bindEvents();
   }
 
-  // ✅ Modal referansını ayarla
+  // Set modal manager reference
   setModalManager(modalManager) {
     this.modalManager = modalManager;
   }
 
+  // Bind routing events
   bindEvents() {
     window.addEventListener('popstate', (e) => this.handlePopState(e));
     this.handleInitialRoute();
   }
 
+  // Handle initial page load routing
   handleInitialRoute() {
     const hash = window.location.hash;
 
-    // Sayfa yenilendiğinde modal hash'i varsa temizle
     if (hash.startsWith('#projects/')) {
-      // Hash'i temizle ve modal'ı kapalı tut
       history.replaceState(null, null, window.location.pathname + window.location.search);
 
-      // Modal açıksa kapat
       const modalOverlay = DOMUtils.$('.modal-overlay');
       if (modalOverlay) {
         modalOverlay.style.display = 'none';
         document.body.style.cssText = '';
       }
 
-      // Sayfa başına git
       window.scrollTo(0, 0);
       return;
     }
   }
 
+  // Handle browser back/forward navigation
   handlePopState(e) {
-    // ✅ Global referans veya instance referansı kullan
     const modal = this.modalManager || window.modalManager;
 
     if (e.state?.slug) {
       const { slug, scrollY = 0 } = e.state;
       state.modal.savedScrollPosition = scrollY;
 
-      // ✅ DÜZELTME: 'modal' değişkenini kullan
       if (modal?.elements.overlay.style.display !== 'flex') {
         this.openProjectModal(slug, false);
       }
     } else if (modal?.elements.overlay.style.display === 'flex') {
-      // ✅ DÜZELTME: 'modal' değişkenini kullan
       modal.close();
     }
   }
 
+  // Open project modal by slug
   openProjectModal(slug, useDelay = true) {
     const card = state.cards.find(c => c.dataset.projectSlug === slug);
     const modal = this.modalManager || window.modalManager;
 
     if (card && modal) {
-      // ✅ DÜZELTME: 'modal' değişkenini kullan
       const openModal = () => modal.openFromCard(card);
 
       if (useDelay) {
@@ -1542,101 +1491,86 @@ class PortfolioApp {
     this.isInitialized = false;
   }
 
+  // Initialize application
   async init() {
     try {
-      // Scroll geri yüklemeyi devre dışı bırak
       this.setupScrollRestoration();
-
-      // Manager'ları başlat
       await this.initializeManagers();
-
-      // Başlangıç verilerini yükle
       this.loadInitialData();
-
-      // Global event listener'ları ayarla
       this.setupGlobalEvents();
 
       this.isInitialized = true;
-      console.log('Portfolio uygulaması başarıyla başlatıldı');
+      console.log('Portfolio application started successfully');
 
     } catch (error) {
-      console.error('Uygulama başlatılırken hata:', error);
+      console.error('Error starting application:', error);
       this.handleCriticalError(error);
     }
   }
 
+  // Setup scroll restoration and hash cleanup
   setupScrollRestoration() {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
 
-    // Hash temizleme - tüm hashları temizle (modal hashları dahil)
     if (window.location.hash) {
       history.replaceState(null, null, window.location.pathname + window.location.search);
     }
 
-    // Modal açıksa kapat
     const modalOverlay = DOMUtils.$('.modal-overlay');
     if (modalOverlay && modalOverlay.style.display === 'flex') {
       modalOverlay.style.display = 'none';
-      // Body scroll kilidini kaldır
       document.body.style.cssText = '';
     }
 
-    // Sayfa başına git
     window.scrollTo(0, 0);
   }
 
+  // Initialize all managers
   async initializeManagers() {
-    // Önce Modal'ı oluştur
     this.managers.modal = new ModalManager();
 
-    // Sonra CardManager'a referans ver
     this.managers.cards = new CardManager();
     this.managers.cards.setModalManager(this.managers.modal);
 
-    // Diğerleri
     this.managers.navigation = new NavigationManager();
     this.managers.animation = new AnimationManager();
     this.managers.routes = new RouteManager();
 
-    // ✅ RouteManager'a da modal referansı ver
     this.managers.routes.setModalManager(this.managers.modal);
 
-    // Global erişim için
+    // Global access
     window.cardManager = this.managers.cards;
     window.modalManager = this.managers.modal;
   }
 
+  // Load initial application data
   loadInitialData() {
-    // Kartları oluştur
     this.managers.cards.createCards();
-
-    // Animasyonları başlat
     this.managers.animation.initTypewriter();
     this.managers.animation.updateCopyrightYear();
-    this.managers.animation.initScrollRevealAnimations(); // Yeni scroll animasyonlarını başlat
-
-    // Navigasyon durumunu ayarla
+    this.managers.animation.initScrollRevealAnimations();
     this.managers.navigation.setInitialActiveState();
   }
 
+  // Setup global event listeners
   setupGlobalEvents() {
-    // Resize olayları
+    // Resize events
     window.addEventListener('resize', Utils.debounce(() => {
       if (state.currentPage) {
         this.managers.cards.showPage(state.currentPage);
       }
     }, 200));
 
-    // Sayfa kapatılmadan önce temizlik
+    // Cleanup before page unload
     window.addEventListener('beforeunload', () => {
       this.cleanup();
     });
 
-    // Hata yakalama
+    // Global error handling
     window.addEventListener('error', (e) => {
-      console.error('Global hata yakalandı:', {
+      console.error('Global error caught:', {
         message: e.message,
         filename: e.filename,
         lineno: e.lineno,
@@ -1644,36 +1578,32 @@ class PortfolioApp {
         error: e.error
       });
 
-      // Critical error'se fallback mode'a geç
       if (e.error?.name === 'TypeError' && e.message.includes('modalManager')) {
         this.handleCriticalError(e.error);
       }
     });
 
     window.addEventListener('unhandledrejection', (e) => {
-      console.error('İşlenmemiş promise reddi:', e.reason);
-      e.preventDefault(); // Prevent console error
+      console.error('Unhandled promise rejection:', e.reason);
+      e.preventDefault();
     });
   }
 
+  // Handle critical application errors
   handleCriticalError(error) {
     try {
-      // Acil durum: Temel işlevselliği geri yükle
-      console.log('🔧 Acil durum moduna geçiliyor...');
+      console.log('Switching to emergency mode...');
 
-      // Animasyonları kaldır
       document.querySelectorAll('.hide, .reveal-section, .reveal-item').forEach(el => {
         el.style.opacity = '1';
         el.style.transform = 'none';
         el.classList.remove('hide');
       });
 
-      // Temel kart gösterimi
       if (cardsData?.length && this.managers.cards) {
         this.managers.cards.createCards();
       }
 
-      // Temel navigasyon
       if (this.managers.navigation) {
         this.managers.navigation.initSmoothScrolling();
       }
@@ -1681,24 +1611,22 @@ class PortfolioApp {
       AccessibilityManager.announceToScreenReader('Application loaded in fallback mode', 'assertive');
 
     } catch (fallbackError) {
-      console.error('❌ Acil durum modu bile başarısız:', fallbackError);
+      console.error('Even emergency mode failed:', fallbackError);
     }
   }
 
+  // Application cleanup
   cleanup() {
-    console.log('🧹 Uygulama temizleniyor...');
+    console.log('Cleaning up application...');
 
-    // State'i temizle
     state.clearAllTimers();
     state.reset();
-
-    // DOM cache'ini temizle
     DOMUtils.cache.clear();
 
-    console.log('✅ Temizlik tamamlandı');
+    console.log('Cleanup completed');
   }
 
-  // Public API
+  // Public API methods
   getState() {
     return { ...state };
   }
@@ -1711,11 +1639,11 @@ class PortfolioApp {
 // =================== APPLICATION INITIALIZATION ===================
 const app = new PortfolioApp();
 
-// Global erişim
+// Global access
 window.portfolioApp = app;
 window.appState = state;
 
-// DOM hazır olduğunda başlat
+// Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => app.init());
 } else {

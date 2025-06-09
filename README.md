@@ -185,7 +185,7 @@ The project uses CSS custom properties (variables) for easy theming. Key variabl
 
 ## 📄 License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is not yet licensed. Please contact the author for usage rights.
 
 ---
 

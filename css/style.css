@@ -1408,8 +1408,8 @@ section {
 
 .modal-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 9px;
   z-index: 120;
   width: 36px;
   height: 36px;
@@ -2188,8 +2188,6 @@ section {
   .modal-close {
     width: 30px;
     height: 30px;
-    top: 12px;
-    right: 12px;
   }
 
   .modal-img {

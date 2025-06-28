@@ -1350,10 +1350,10 @@ section {
 }
 
 .modal {
-  width: min(750px, 85%);
+  width: min(700px, 95%);
   background: var(--card-bg);
   border-radius: var(--border-radius-lg);
-  padding: 32px 28px 36px;
+  padding: 20px;
   box-shadow: var(--shadow-lg);
   position: relative;
   text-align: center;
@@ -1389,8 +1389,8 @@ section {
 }
 
 .circular-button {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   font-size: 1.1rem;
 }
@@ -1408,8 +1408,8 @@ section {
 
 .modal-close {
   position: absolute;
-  top: 12px;
-  right: 9px;
+  top: 5px;
+  right: 5px;
   z-index: 120;
   width: 36px;
   height: 36px;
@@ -1429,7 +1429,7 @@ section {
 
 .modal-img {
   width: 100%;
-  height: 400px;
+  height: 412px;
   object-fit: cover;
   object-position: center;
   transition: transform 0.4s ease;
@@ -1502,14 +1502,13 @@ section {
 .modal-thumbs {
   display: flex;
   gap: 10px;
-  margin-top: 18px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 6px 0;
+  padding: 0 6px;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 113, 227, 0.3) transparent;
   -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
+  margin-bottom: var(--space-sm);
 }
 
 .modal-thumbs::-webkit-scrollbar {
@@ -1529,9 +1528,9 @@ section {
 }
 
 .modal-thumb {
-  width: 70px;
-  min-width: 70px;
-  height: 48px;
+  width: 64px;
+  min-width: 64px;
+  height: 40px;
   flex: 0 0 auto;
   border-radius: 7px;
   object-fit: cover;
@@ -1571,7 +1570,6 @@ section {
 .modal-title {
   font-size: 1.8rem;
   font-weight: 600;
-  margin: 20px 0 10px;
   color: var(--text-dark);
   line-height: 1.3;
 }
@@ -1580,23 +1578,27 @@ section {
   color: var(--primary-color);
   font-size: 0.95rem;
   font-weight: 500;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-sm);
   opacity: 0.85;
+  background-color: rgba(0, 113, 227, 0.1);
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+  display: inline-block;
 }
 
 .modal-description {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--text-light);
-  line-height: 1.6;
+  line-height: 1.5;
   max-width: 88%;
-  margin: 0 auto 10px;
+  margin: 0 auto 0;
 }
 
 .modal-buttons {
   display: flex;
   justify-content: center;
   gap: 18px;
-  margin-top: 28px;
+  margin-top: var(--space-sm);
 }
 
 .modal-btn {
@@ -1866,54 +1868,51 @@ section {
 =============================================*/
 @media (max-width: 1728px) {
   .modal {
-    width: 90%;
-    max-width: 600px;
-    padding: 20px 16px 24px;
+    width: 600px;
+    padding: 16px;
+  }
+
+  .modal-close {
+    top: 3px;
+    right: 3px;
+  }
+
+  .modal-gallery {
+    margin-bottom: 20px;
   }
 
   .modal-img {
-    height: 350px;
-    object-fit: cover;
-    object-position: center;
-  }
-
-  .modal-thumbs {
-    margin-top: 12px;
-    padding: 4px 0;
+    height: 340px;
   }
 
   .modal-thumb {
-    width: 60px;
-    height: 40px;
-    min-width: 60px;
+    width: 56px;
+    height: 35px;
+    min-width: 56px;
   }
 
   .modal-title {
     font-size: 1.6rem;
-    margin: 16px 0 8px;
   }
 
   .modal-tags {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     margin-bottom: 12px;
   }
 
   .modal-description {
-    max-width: 90%;
-    font-size: 0.8rem;
-    margin: 0 auto 12px;
+    font-size: 0.9rem;
   }
 
   .modal-buttons {
-    gap: 16px;
-    margin-top: 16px;
+    gap: 12px;
+    margin-top: 12px;
   }
 
   .modal-btn {
-    padding: 10px 20px;
-    font-size: 0.75rem;
+    padding: 10px 24px;
+    font-size: 0.8rem;
   }
-
 }
 
 @media (max-width: 992px) {
@@ -2056,55 +2055,6 @@ section {
     font-size: 1.3rem;
   }
 
-  .modal {
-    width: 90%;
-    max-width: 500px;
-    padding: 20px 16px 24px;
-  }
-
-  .modal-img {
-    height: 300px;
-    object-fit: cover;
-    object-position: center;
-  }
-
-  .modal-thumbs {
-    margin-top: 12px;
-    padding: 4px 0;
-  }
-
-  .modal-thumb {
-    width: 60px;
-    height: 40px;
-    min-width: 60px;
-  }
-
-  .modal-title {
-    font-size: 1.4rem;
-    margin: 16px 0 8px;
-  }
-
-  .modal-tags {
-    font-size: 0.65rem;
-    margin-bottom: 12px;
-  }
-
-  .modal-description {
-    max-width: 90%;
-    font-size: 0.8rem;
-    margin: 0 auto 12px;
-  }
-
-  .modal-buttons {
-    gap: 16px;
-    margin-top: 16px;
-  }
-
-  .modal-btn {
-    padding: 10px 20px;
-    font-size: 0.75rem;
-  }
-
   .contact-info-container {
     grid-template-columns: 1fr;
   }
@@ -2170,9 +2120,7 @@ section {
   }
 
   .modal {
-    width: 95%;
-    max-width: 400px;
-    padding: 16px 12px 20px;
+    width: 400px;
   }
 
   .circular-button {
@@ -2188,48 +2136,40 @@ section {
   .modal-close {
     width: 30px;
     height: 30px;
+    top: 4px;
+    right: 4px;
   }
 
   .modal-img {
-    height: 200px;
-    object-fit: cover;
-    object-position: center;
-  }
-
-  .modal-thumbs {
-    margin-top: 10px;
-    padding: 2px 0;
+    height: 215px;
   }
 
   .modal-thumb {
     width: 50px;
-    height: 30px;
+    height: 33px;
     min-width: 50px;
   }
 
   .modal-title {
-    font-size: 1.2rem;
-    margin: 12px 0 6px;
+    font-size: 1.5rem;
   }
 
   .modal-tags {
-    font-size: 0.55rem;
-    margin-bottom: 12px;
+    font-size: 0.7rem;
   }
 
   .modal-description {
-    font-size: 0.7rem;
-    margin: 0 auto 12px;
+    font-size: 0.8rem;
+    max-width: 90%;
   }
 
   .modal-buttons {
-    gap: 12px;
-    margin-top: 16px;
+    gap: 10px;
   }
 
   .modal-btn {
-    padding: 8px 16px;
-    font-size: 0.65rem;
+    padding: 10px 20px;
+    font-size: 0.7rem;
   }
 
   .card-info {

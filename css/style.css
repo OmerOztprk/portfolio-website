@@ -1429,7 +1429,7 @@ section {
 
 .modal-img {
   width: 100%;
-  height: 412px;
+  height: 410px;
   object-fit: cover;
   object-position: center;
   transition: transform 0.4s ease;
@@ -1882,7 +1882,7 @@ section {
   }
 
   .modal-img {
-    height: 340px;
+    height: 345px;
   }
 
   .modal-thumb {
@@ -2121,6 +2121,7 @@ section {
 
   .modal {
     width: 400px;
+    height: 80vh;
   }
 
   .circular-button {
@@ -2139,14 +2140,17 @@ section {
     top: 4px;
     right: 4px;
   }
+  .modal-gallery {
+    margin-bottom: 16px;
+  }
 
   .modal-img {
-    height: 215px;
+    height: 218px;
   }
 
   .modal-thumb {
     width: 50px;
-    height: 33px;
+    height: 35px;
     min-width: 50px;
   }
 
@@ -2156,6 +2160,7 @@ section {
 
   .modal-tags {
     font-size: 0.7rem;
+    margin-bottom: 8px;
   }
 
   .modal-description {
@@ -2165,6 +2170,7 @@ section {
 
   .modal-buttons {
     gap: 10px;
+    margin-top: 8px;
   }
 
   .modal-btn {

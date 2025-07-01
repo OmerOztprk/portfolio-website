@@ -1020,8 +1020,9 @@ section {
 .card-title {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   color: var(--text-dark);
+  padding: 0 2px;
 }
 
 .card-tags {
@@ -1029,17 +1030,23 @@ section {
   font-size: 0.9rem;
   margin-bottom: 12px;
   font-weight: 500;
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   gap: 6px;
+  background-color: rgba(0, 113, 227, 0.1);
+  border-radius: var(--border-radius);
+  padding: 4px 2px;
+  max-width: 100%;
+  align-self: flex-start;
 }
 
 .card-description {
   font-size: 0.95rem;
   color: var(--text-light);
-  margin-bottom: var(--space-md);
+  margin-bottom: 12px;
   line-height: 1.6;
   flex-grow: 1;
+  padding: 0 2px;
 }
 
 .view-details-btn {
@@ -1602,7 +1609,7 @@ section {
 }
 
 .modal-btn {
-  padding: 12px 28px;
+  padding: 10px 24px;
   font-size: 0.95rem;
   font-weight: 500;
   background-color: var(--primary-color);
@@ -1882,7 +1889,11 @@ section {
   }
 
   .modal-img {
-    height: 345px;
+    height: 340px;
+  }
+
+  .modal-thumbs {
+    margin-bottom: 12px;
   }
 
   .modal-thumb {
@@ -1901,7 +1912,8 @@ section {
   }
 
   .modal-description {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    max-width: 90%;
   }
 
   .modal-buttons {
@@ -1910,7 +1922,7 @@ section {
   }
 
   .modal-btn {
-    padding: 10px 24px;
+    padding: 8px 20px;
     font-size: 0.8rem;
   }
 }
@@ -2121,7 +2133,7 @@ section {
 
   .modal {
     width: 400px;
-    height: 80vh;
+    max-height: 80vh;
   }
 
   .circular-button {
@@ -2140,12 +2152,17 @@ section {
     top: 4px;
     right: 4px;
   }
+
   .modal-gallery {
     margin-bottom: 16px;
   }
 
   .modal-img {
-    height: 218px;
+    height: 210px;
+  }
+
+  .modal-thumbs {
+    margin-bottom: 8px;
   }
 
   .modal-thumb {
@@ -2155,17 +2172,17 @@ section {
   }
 
   .modal-title {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
   .modal-tags {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     margin-bottom: 8px;
   }
 
   .modal-description {
     font-size: 0.8rem;
-    max-width: 90%;
+    max-width: 92%;
   }
 
   .modal-buttons {
@@ -2174,8 +2191,8 @@ section {
   }
 
   .modal-btn {
-    padding: 10px 20px;
-    font-size: 0.7rem;
+    padding: 8px 20px;
+    font-size: 0.65rem;
   }
 
   .card-info {

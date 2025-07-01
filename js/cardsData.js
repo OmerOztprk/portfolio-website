@@ -8,7 +8,7 @@ export const cardsData = [
     title: "E-Commerce Platform",
     slug: "e-commerce-platform",
     tags: "React, Node.js, MongoDB, Stripe, Redux",
-    description: "A comprehensive e-commerce solution with user authentication, payment processing, and admin dashboard. Features include product catalog, shopping cart, order management, and real-time inventory tracking. Built with modern technologies to ensure scalability and performance. Includes responsive design for optimal mobile experience.",
+    description: "A comprehensive e-commerce solution with user authentication, payment processing, and admin dashboard. Features include product catalog, shopping cart, order management, and real-time inventory tracking. Built with modern technologies to ensure scalability and performance. Includes responsive design for optimal mobile experience. Supports multiple payment gateways and integrates with third-party services for shipping and analytics. Provides a seamless user experience with advanced search and filtering options.",
     category: "fullstack",
     images: [
 

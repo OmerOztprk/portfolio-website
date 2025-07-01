@@ -521,10 +521,10 @@ class CardManager {
       card.classList.remove('hide');
     });
 
-    // Toggle pagination visibility
+    // Always show pagination if there are any cards
     if (this.elements.pagination) {
       this.elements.pagination.style.display =
-        state.filteredCards.length > CONFIG.cardsPerPage ? 'flex' : 'none';
+        state.filteredCards.length > 0 ? 'flex' : 'none';
     }
   }
 
@@ -534,7 +534,8 @@ class CardManager {
     const totalPages = Math.ceil(state.filteredCards.length / CONFIG.cardsPerPage);
     this.elements.pagination.innerHTML = '';
 
-    if (totalPages <= 1) return;
+    // Show pagination even for single page (if there are cards)
+    if (totalPages < 1) return;
 
     // Previous page button
     this.addNavigationButton('prev', state.currentPage === 1);

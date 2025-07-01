@@ -29,7 +29,7 @@ This project is a modern and responsive portfolio card system designed to showca
 
 1. Clone this repository to your computer:
    ```bash
-   git clone https://github.com/OmerOztprk/portfolio-cards.git
+   git clone https://github.com/OmerOztprk/portfolio-website.git
    ```
 2. Edit the [`cardsData.js`](js/cardsData.js) file with your own projects.
 3. Add your project images to the `assets/images/` folder.
@@ -44,7 +44,7 @@ To open the project in your browser:
 ## 📁 Project Structure
 
 ```
-portfolio-cards/
+portfolio-website/
 ├── assets/
 │   ├── icon/
 │   │   └── favicon.ico

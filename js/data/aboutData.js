@@ -4,8 +4,6 @@
 
 export const aboutData = {
   personal: {
-    name: "Ömer Öztoprak",
-    title: "Full Stack Developer",
     image: "./assets/images/profile.png",
     bio: [
       "Hello! I'm Ömer Öztoprak, a passionate software developer with a keen interest in web development and mobile applications. I love creating innovative solutions that enhance user experiences and solve real-world problems.",

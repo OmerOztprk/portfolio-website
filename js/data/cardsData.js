@@ -1,7 +1,7 @@
-/* =============================================
-   Project Portfolio Data Template
-   Replace sample values with your real projects
-============================================= */
+/**
+  * Portfolio Website Cards Data
+  */
+
 
 export const cardsData = [
   {

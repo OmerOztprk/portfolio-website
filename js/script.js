@@ -1,12 +1,13 @@
 /**
- * Portfolio Cards - Advanced JavaScript Module
- * 
- * Modern, performant and accessible portfolio application
- * Built with clean code principles and modular architecture
- */
+  * Portfolio Website JavaScript Module
+  */
 
 // =================== IMPORTS ===================
-import { cardsData } from "./cardsData.js";
+import { homeData } from "./data/homeData.js";
+import { aboutData } from "./data/aboutData.js";
+import { skillsData } from "./data/skillsData.js";
+import { cardsData } from "./data/cardsData.js";
+import { contactData } from "./data/contactData.js";
 
 // =================== CONFIGURATION ===================
 const CONFIG = Object.freeze({
@@ -35,7 +36,7 @@ const CONFIG = Object.freeze({
 
   // Scroll animation settings
   scrollAnimation: {
-    duration: window.matchMedia('(max-width: 768px)').matches ? 1500 : 1200,
+    duration: $(window).width() <= 768 ? 1500 : 1200,
     easing: 'easeInOutCubic'
   }
 });
@@ -99,80 +100,71 @@ class AppState {
 
 const state = new AppState();
 
-// =================== DOM UTILITIES ===================
-class DOMUtils {
+// =================== JQUERY UTILITIES ===================
+class JQueryUtils {
   static cache = new Map();
   static cacheEnabled = true;
 
-  // Element selector with caching
-  static $(selector, context = document, useCache = true) {
+  // Enhanced jQuery selector with caching
+  static $(selector, context = $(document), useCache = true) {
     if (!this.cacheEnabled || !useCache) {
-      return context.querySelector(selector);
+      return context.find ? context.find(selector) : $(selector, context);
     }
 
-    const key = `${selector}-${context === document ? 'doc' : context.id || 'ctx'}`;
+    const key = `${selector}-${context.get(0) === document ? 'doc' : 'ctx'}`;
     if (!this.cache.has(key)) {
-      const element = context.querySelector(selector);
-      if (element) {
+      const element = context.find ? context.find(selector) : $(selector, context);
+      if (element.length) {
         this.cache.set(key, element);
       }
       return element;
     }
 
     const cached = this.cache.get(key);
-    if (cached && !document.contains(cached)) {
+    if (cached.length && !$.contains(document, cached.get(0))) {
       this.cache.delete(key);
-      return context.querySelector(selector);
+      return context.find ? context.find(selector) : $(selector, context);
     }
 
     return cached;
   }
 
-  // Multiple elements selector with caching
-  static $$(selector, context = document) {
-    const key = `${selector}-all-${context === document ? 'doc' : 'ctx'}`;
-    if (!this.cache.has(key)) {
-      this.cache.set(key, context.querySelectorAll(selector));
-    }
-    return this.cache.get(key);
-  }
-
-  // Element creation helper
+  // Create element helper with jQuery
   static createElement(tag, className, content) {
-    const element = document.createElement(tag);
-    if (className) element.className = className;
-    if (content) element.innerHTML = content;
-    return element;
+    const $element = $(`<${tag}>`);
+    if (className) $element.addClass(className);
+    if (content) $element.html(content);
+    return $element;
   }
 
-  // Attribute setting helper
-  static setAttributes(element, attributes) {
-    if (!element || !attributes) return element;
+  // Attribute setting helper for jQuery
+  static setAttributes($element, attributes) {
+    if (!$element || !$element.length || !attributes) return $element;
 
-    Object.entries(attributes).forEach(([key, value]) => {
+    $.each(attributes, (key, value) => {
       if (key === 'disabled') {
-        element.disabled = Boolean(value);
-        if (value) element.setAttribute('disabled', '');
-        else element.removeAttribute('disabled');
+        $element.prop('disabled', Boolean(value));
+        if (value) $element.attr('disabled', '');
+        else $element.removeAttr('disabled');
       } else if (value !== null && value !== undefined) {
-        element.setAttribute(key, value);
+        $element.attr(key, value);
       }
     });
 
-    return element;
+    return $element;
   }
 
-  // CSS animation helper
-  static animateCSS(element, animationName, callback) {
-    element.classList.add('animate__animated', `animate__${animationName}`);
+  // jQuery animation helper
+  static animateCSS($element, animationName, callback) {
+    $element.addClass(`animate__animated animate__${animationName}`);
 
     const handleAnimationEnd = () => {
-      element.classList.remove('animate__animated', `animate__${animationName}`);
-      element.removeEventListener('animationend', handleAnimationEnd);
+      $element.removeClass(`animate__animated animate__${animationName}`);
+      $element.off('animationend', handleAnimationEnd);
       if (callback) callback();
     };
 
-    element.addEventListener('animationend', handleAnimationEnd);
+    $element.on('animationend', handleAnimationEnd);
   }
 
   // Cache management
@@ -188,7 +180,7 @@ class DOMUtils {
 
 // =================== UTILITY FUNCTIONS ===================
 const Utils = {
-  // Performance utilities
+  // Performance utilities with jQuery
   debounce(func, delay = CONFIG.debounceDelay) {
     let timer;
     return function (...args) {
@@ -213,13 +205,14 @@ const Utils = {
     return Math.min(Math.max(value, min), max);
   },
 
-  // Scroll and navigation utilities
+  // Scroll and navigation utilities with jQuery
   getVisibleSections() {
-    const sections = DOMUtils.$$('section[id]');
-    const viewportHeight = window.innerHeight;
+    const $sections = $('section[id]');
+    const viewportHeight = $(window).height();
     const visibleSections = [];
 
-    sections.forEach(section => {
+    $sections.each((index, section) => {
+      const $section = $(section);
       const rect = section.getBoundingClientRect();
 
       if (rect.top < viewportHeight && rect.bottom > 0) {
@@ -228,7 +221,7 @@ const Utils = {
 
         if (visiblePercent > 5) {
           visibleSections.push({
-            id: section.id,
+            id: $section.attr('id'),
             visiblePercent,
             distanceFromTop: Math.abs(rect.top)
           });
@@ -251,13 +244,13 @@ const Utils = {
     easeInOutQuart: (t) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2
   },
 
-  // Smooth scroll implementation
+  // Smooth scroll implementation with jQuery
   smoothScrollTo(target, callback) {
-    const element = typeof target === 'string' ? DOMUtils.$(target) : target;
-    if (!element) return;
+    const $element = typeof target === 'string' ? $(target) : target;
+    if (!$element.length) return;
 
-    const startPosition = window.pageYOffset;
-    const targetPosition = element.offsetTop - CONFIG.scrollOffset;
+    const startPosition = $(window).scrollTop();
+    const targetPosition = $element.offset().top - CONFIG.scrollOffset;
     const distance = targetPosition - startPosition;
     const duration = CONFIG.scrollAnimation.duration;
     const easingFunction = this.easing[CONFIG.scrollAnimation.easing];
@@ -272,7 +265,7 @@ const Utils = {
       const ease = easingFunction(progress);
 
       const currentPosition = startPosition + (distance * ease);
-      window.scrollTo(0, currentPosition);
+      $(window).scrollTop(currentPosition);
 
       if (progress < 1) {
         requestAnimationFrame(animateScroll);
@@ -295,59 +288,255 @@ const Utils = {
 
 // =================== ACCESSIBILITY MANAGER ===================
 class AccessibilityManager {
-  // Focus trap for modal dialogs
-  static trapFocus(element) {
-    if (!element) return;
+  // Focus trap for modal dialogs with jQuery
+  static trapFocus($element) {
+    if (!$element || !$element.length) return;
 
-    const focusableElements = element.querySelectorAll(
+    const $focusableElements = $element.find(
       'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])'
     );
 
-    if (focusableElements.length === 0) return;
+    if (!$focusableElements.length) return;
 
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
+    const $firstElement = $focusableElements.first();
+    const $lastElement = $focusableElements.last();
 
     const handleKeyDown = (e) => {
       if (e.key === 'Tab') {
-        if (e.shiftKey && document.activeElement === firstElement) {
+        if (e.shiftKey && $(document.activeElement).is($firstElement)) {
           e.preventDefault();
-          lastElement.focus();
-        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          $lastElement.focus();
+        } else if (!e.shiftKey && $(document.activeElement).is($lastElement)) {
           e.preventDefault();
-          firstElement.focus();
+          $firstElement.focus();
         }
       }
     };
 
-    element.addEventListener('keydown', handleKeyDown);
-    element._focusTrapHandler = handleKeyDown;
+    $element.on('keydown.focustrap', handleKeyDown);
 
     return () => {
-      element.removeEventListener('keydown', handleKeyDown);
-      element._focusTrapHandler = null;
+      $element.off('keydown.focustrap');
     };
   }
 
   // Remove focus trap
-  static removeFocusTrap(element) {
-    if (element?._focusTrapHandler) {
-      element.removeEventListener('keydown', element._focusTrapHandler);
-      element._focusTrapHandler = null;
+  static removeFocusTrap($element) {
+    if ($element && $element.length) {
+      $element.off('keydown.focustrap');
     }
   }
 
-  // Screen reader announcements
+  // Screen reader announcements with jQuery
   static announceToScreenReader(message, priority = 'polite') {
-    const announcement = DOMUtils.createElement('div', 'sr-only');
-    announcement.setAttribute('aria-live', priority);
-    announcement.textContent = message;
+    const $announcement = $('<div>')
+      .addClass('sr-only')
+      .attr('aria-live', priority)
+      .text(message);
 
-    document.body.appendChild(announcement);
+    $('body').append($announcement);
 
     setTimeout(() => {
-      document.body.removeChild(announcement);
+      $announcement.remove();
     }, 1000);
+  }
+}
+
+// =================== HOME MANAGER ===================
+class HomeManager {
+  constructor() {
+    this.initializeElements();
+    this.renderContent();
+  }
+
+  // Initialize DOM elements with jQuery
+  initializeElements() {
+    this.elements = {
+      $heroTitle: $('.hero-title'),
+      $professionText: $('#profession-text'),
+      $heroDescription: $('.hero-description'),
+      $heroButtons: $('.hero-buttons')
+    };
+  }
+
+  // Render dynamic content from homeData
+  renderContent() {
+    if (this.elements.$heroTitle.length) {
+      this.elements.$heroTitle.html(`
+        ${homeData.hero.title}
+        <span class="highlight">${homeData.hero.name}</span>
+      `);
+    }
+
+    if (this.elements.$heroDescription.length) {
+      this.elements.$heroDescription.text(homeData.hero.description);
+    }
+
+    if (this.elements.$heroButtons.length) {
+      const buttonsHTML = homeData.buttons.map(button => `
+        <a href="${button.href}" class="hero-button ${button.type}">${button.text}</a>
+      `).join('');
+      this.elements.$heroButtons.html(buttonsHTML);
+    }
+  }
+
+  // Get professions for typewriter animation
+  getTypewriterProfessions() {
+    return homeData.hero.professions;
+  }
+}
+
+// =================== ABOUT MANAGER ===================
+class AboutManager {
+  constructor() {
+    this.initializeElements();
+    this.renderContent();
+  }
+
+  // Initialize DOM elements with jQuery
+  initializeElements() {
+    this.elements = {
+      $aboutImage: $('.about-image img'),
+      $aboutText: $('.about-text'),
+      $aboutSocial: $('.about-social'),
+      $resumeButton: $('.resume-button')
+    };
+  }
+
+  // Render dynamic content from aboutData
+  renderContent() {
+    // Update profile image
+    if (this.elements.$aboutImage.length) {
+      this.elements.$aboutImage
+        .attr('src', aboutData.personal.image)
+        .attr('alt', aboutData.personal.name);
+    }
+
+    // Update bio text
+    if (this.elements.$aboutText.length) {
+      const bioHTML = aboutData.personal.bio.map(paragraph =>
+        `<p>${paragraph}</p>`
+      ).join('');
+      this.elements.$aboutText.html(bioHTML);
+    }
+
+    // Update social links
+    if (this.elements.$aboutSocial.length) {
+      const socialHTML = aboutData.social.map(social => `
+        <a href="${social.url}" class="social-icon ${social.platform.toLowerCase()}-icon" 
+           aria-label="${social.platform}" target="_blank" rel="noopener noreferrer">
+          <i class="${social.icon}" aria-hidden="true"></i>
+        </a>
+      `).join('');
+      this.elements.$aboutSocial.html(socialHTML);
+    }
+
+    // Update resume button
+    if (this.elements.$resumeButton.length) {
+      this.elements.$resumeButton.attr('href', aboutData.personal.resumeUrl);
+    }
+  }
+}
+
+// =================== SKILLS MANAGER ===================
+class SkillsManager {
+  constructor() {
+    this.initializeElements();
+    this.renderContent();
+  }
+
+  // Initialize DOM elements with jQuery
+  initializeElements() {
+    this.elements = {
+      $skillsShowcase: $('.skills-showcase')
+    };
+  }
+
+  // Render dynamic content from skillsData
+  renderContent() {
+    if (!this.elements.$skillsShowcase.length) return;
+
+    const skillsCategoriesHTML = skillsData.map(category => `
+      <div class="skills-category">
+        <div class="skills-header">
+          <h3 class="skills-category-title">${category.category}</h3>
+          <div class="skills-category-icon">
+            <i class="${category.icon}" aria-hidden="true"></i>
+          </div>
+        </div>
+        <div class="skills-grid">
+          ${category.skills.map(skill => `
+            <div class="skill-item" data-tooltip="${skill.name}" aria-label="${skill.name} skill">
+              <i class="${skill.icon}"></i>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    this.elements.$skillsShowcase.html(skillsCategoriesHTML);
+  }
+}
+
+// =================== CONTACT MANAGER ===================
+class ContactManager {
+  constructor() {
+    this.initializeElements();
+    this.renderContent();
+  }
+
+  // Initialize DOM elements with jQuery
+  initializeElements() {
+    this.elements = {
+      $contactDescription: $('.contact-description p'),
+      $contactInfoContainer: $('.contact-info-container'),
+      $footerSocial: $('.footer-social')
+    };
+  }
+
+  // Render dynamic content from contactData
+  renderContent() {
+    // Update description
+    if (this.elements.$contactDescription.length) {
+      this.elements.$contactDescription.text(contactData.description);
+    }
+
+    // Update contact methods
+    if (this.elements.$contactInfoContainer.length) {
+      const $existingDescription = this.elements.$contactInfoContainer.find('.contact-description');
+
+      const contactMethodsHTML = contactData.contactMethods.map(method => `
+        <div class="contact-item">
+          <i class="${method.icon}" aria-hidden="true"></i>
+          <div class="contact-text">
+            <h3>${method.type}</h3>
+            ${method.href ?
+          `<a href="${method.href}">${method.display}</a>` :
+          `<p>${method.display}</p>`
+        }
+          </div>
+        </div>
+      `).join('');
+
+      this.elements.$contactInfoContainer.html($existingDescription.prop('outerHTML') + contactMethodsHTML);
+    }
+
+    // Update footer social media links
+    this.updateFooterSocial();
+  }
+
+  // Update footer social media with jQuery
+  updateFooterSocial() {
+    if (this.elements.$footerSocial.length) {
+      const footerSocialHTML = aboutData.social.map(social => `
+        <a href="${social.url}" class="social-icon ${social.platform.toLowerCase()}-icon" 
+           aria-label="${social.platform}" target="_blank" rel="noopener noreferrer">
+          <i class="${social.icon}" aria-hidden="true"></i>
+        </a>
+      `).join('');
+
+      this.elements.$footerSocial.html(footerSocialHTML);
+    }
   }
 }
 
@@ -359,63 +548,57 @@ class CardManager {
     this.bindEvents();
   }
 
-  // Initialize DOM elements
+  // Initialize DOM elements with jQuery
   initializeElements() {
     this.elements = {
-      grid: DOMUtils.$('.cards-grid'),
-      filters: DOMUtils.$$('.filter-btn'),
-      pagination: DOMUtils.$('.pagination'),
-      emptyMessage: DOMUtils.$('.empty-category')
+      $grid: $('.cards-grid'),
+      $filters: $('.filter-btn'),
+      $pagination: $('.pagination'),
+      $emptyMessage: $('.empty-category')
     };
   }
 
-  // Bind event listeners
+  // Bind event listeners with jQuery
   bindEvents() {
     // Card detail buttons event delegation
-    this.elements.grid?.addEventListener('click', (e) => {
-      const detailsBtn = e.target.closest('.view-details-btn');
-      if (detailsBtn) {
-        const card = detailsBtn.closest('.card-item');
-        if (this.modalManager || window.modalManager) {
-          (this.modalManager || window.modalManager).openFromCard(card);
-        } else {
-          console.warn('Modal manager not ready yet.');
-        }
+    this.elements.$grid.on('click', '.view-details-btn', (e) => {
+      const $card = $(e.target).closest('.card-item');
+      if (this.modalManager || window.modalManager) {
+        (this.modalManager || window.modalManager).openFromCard($card);
       }
     });
 
     // Filter buttons
-    this.elements.filters.forEach(button => {
-      button.addEventListener('click', () => this.handleFilterChange(button));
+    this.elements.$filters.on('click', (e) => {
+      this.handleFilterChange($(e.target));
     });
   }
 
-  // Card creation and rendering
+  // Create cards from data with jQuery
   createCards() {
-    if (!this.elements.grid || !cardsData.length) return;
+    if (!this.elements.$grid.length || !cardsData.length) return;
 
-    const fragment = document.createDocumentFragment();
+    const $fragment = $(document.createDocumentFragment());
 
     cardsData.forEach(item => {
-      const card = this.createCardElement(item);
-      fragment.appendChild(card);
+      const $card = this.createCardElement(item);
+      $fragment.append($card);
     });
 
-    this.elements.grid.innerHTML = '';
-    this.elements.grid.appendChild(fragment);
+    this.elements.$grid.empty().append($fragment);
 
-    state.cards = Array.from(this.elements.grid.children);
+    state.cards = this.elements.$grid.children().toArray().map($el => $($el));
     state.filteredCards = [...state.cards];
 
     this.showPage(1);
     this.renderPagination();
   }
 
-  // Create individual card element
+  // Create individual card element with jQuery
   createCardElement(item) {
-    const card = DOMUtils.createElement('div', 'card-item');
+    const $card = $('<div>').addClass('card-item');
 
-    DOMUtils.setAttributes(card, {
+    JQueryUtils.setAttributes($card, {
       'data-category': item.category,
       'data-images': (item.images.length > 0 ? item.images : [CONFIG.fallbackImage]).join(','),
       'data-project-slug': Utils.formatProjectSlug(item.title)
@@ -432,7 +615,7 @@ class CardManager {
       `;
     }).join('');
 
-    card.innerHTML = `
+    $card.html(`
       <div class="card-image">
         <img src="${item.images[0] || CONFIG.fallbackImage}" 
              alt="${item.title}" 
@@ -449,9 +632,9 @@ class CardManager {
           View Details
         </button>
       </div>
-    `;
+    `);
 
-    return card;
+    return $card;
   }
 
   // Helper methods for card links
@@ -467,19 +650,19 @@ class CardManager {
     return `External link for ${title}`;
   }
 
-  // Filter handling
-  handleFilterChange(button) {
+  // Filter handling with jQuery
+  handleFilterChange($button) {
     // Update UI
-    this.elements.filters.forEach(btn => {
-      btn.classList.remove('active');
-      btn.setAttribute('aria-pressed', 'false');
-    });
+    this.elements.$filters
+      .removeClass('active')
+      .attr('aria-pressed', 'false');
 
-    button.classList.add('active');
-    button.setAttribute('aria-pressed', 'true');
+    $button
+      .addClass('active')
+      .attr('aria-pressed', 'true');
 
     // Apply filter
-    const filter = button.dataset.filter;
+    const filter = $button.data('filter');
     state.activeFilter = filter;
     this.filterCards(filter);
 
@@ -488,12 +671,13 @@ class CardManager {
     );
   }
 
+  // Filter cards with jQuery
   filterCards(filter) {
     this.hideEmptyMessage();
 
     state.filteredCards = filter === 'all'
       ? [...state.cards]
-      : state.cards.filter(card => card.dataset.category.includes(filter));
+      : state.cards.filter($card => $card.data('category').includes(filter));
 
     state.currentPage = 1;
     this.showPage(1);
@@ -504,35 +688,35 @@ class CardManager {
     }
   }
 
-  // Pagination methods
+  // Pagination methods with jQuery
   showPage(page) {
     // Hide all cards
-    state.cards.forEach(card => {
-      card.style.display = 'none';
-      card.classList.add('hide');
+    state.cards.forEach($card => {
+      $card.css('display', 'none').addClass('hide');
     });
 
     // Show page cards
     const start = (page - 1) * CONFIG.cardsPerPage;
     const pageCards = state.filteredCards.slice(start, start + CONFIG.cardsPerPage);
 
-    pageCards.forEach((card) => {
-      card.style.display = 'flex';
-      card.classList.remove('hide');
+    pageCards.forEach(($card) => {
+      $card.css('display', 'flex').removeClass('hide');
     });
 
     // Always show pagination if there are any cards
-    if (this.elements.pagination) {
-      this.elements.pagination.style.display =
-        state.filteredCards.length > 0 ? 'flex' : 'none';
+    if (this.elements.$pagination.length) {
+      this.elements.$pagination.css('display',
+        state.filteredCards.length > 0 ? 'flex' : 'none'
+      );
     }
   }
 
+  // Render pagination with jQuery
   renderPagination() {
-    if (!this.elements.pagination) return;
+    if (!this.elements.$pagination.length) return;
 
     const totalPages = Math.ceil(state.filteredCards.length / CONFIG.cardsPerPage);
-    this.elements.pagination.innerHTML = '';
+    this.elements.$pagination.empty();
 
     // Show pagination even for single page (if there are cards)
     if (totalPages < 1) return;
@@ -547,18 +731,20 @@ class CardManager {
     this.addNavigationButton('next', state.currentPage === totalPages);
   }
 
+  // Add navigation button with jQuery
   addNavigationButton(type, disabled) {
-    const button = DOMUtils.createElement('button', 'page-btn');
-    button.innerHTML = type === 'prev'
+    const $button = $('<button>').addClass('page-btn');
+    $button.html(type === 'prev'
       ? '<i class="fas fa-chevron-left"></i>'
-      : '<i class="fas fa-chevron-right"></i>';
+      : '<i class="fas fa-chevron-right"></i>'
+    );
 
-    DOMUtils.setAttributes(button, {
+    JQueryUtils.setAttributes($button, {
       disabled,
       'aria-label': type === 'prev' ? 'Previous page' : 'Next page'
     });
 
-    button.addEventListener('click', () => {
+    $button.on('click', () => {
       if (!disabled) {
         state.currentPage += type === 'prev' ? -1 : 1;
         this.showPage(state.currentPage);
@@ -567,9 +753,10 @@ class CardManager {
       }
     });
 
-    this.elements.pagination.appendChild(button);
+    this.elements.$pagination.append($button);
   }
 
+  // Add page numbers with jQuery
   addPageNumbers(totalPages) {
     const maxPages = CONFIG.maxPaginationPages;
     let start = Math.max(1, state.currentPage - Math.floor(maxPages / 2));
@@ -583,7 +770,7 @@ class CardManager {
     if (start > 1) {
       this.addPageButton(1);
       if (start > 2) {
-        this.elements.pagination.appendChild(this.createDots());
+        this.elements.$pagination.append(this.createDots());
       }
     }
 
@@ -595,57 +782,59 @@ class CardManager {
     // Dots + last page
     if (end < totalPages) {
       if (end < totalPages - 1) {
-        this.elements.pagination.appendChild(this.createDots());
+        this.elements.$pagination.append(this.createDots());
       }
       this.addPageButton(totalPages);
     }
   }
 
+  // Add page button with jQuery
   addPageButton(pageNumber) {
     const isActive = pageNumber === state.currentPage;
-    const button = DOMUtils.createElement('button', `page-btn${isActive ? ' active' : ''}`, pageNumber);
+    const $button = $('<button>')
+      .addClass(`page-btn${isActive ? ' active' : ''}`)
+      .text(pageNumber);
 
-    DOMUtils.setAttributes(button, {
+    JQueryUtils.setAttributes($button, {
       'aria-label': `Page ${pageNumber}`,
       'aria-current': isActive ? 'page' : null
     });
 
-    button.addEventListener('click', () => {
+    $button.on('click', () => {
       state.currentPage = pageNumber;
       this.showPage(pageNumber);
       this.renderPagination();
       Utils.smoothScrollTo('#projects');
     });
 
-    this.elements.pagination.appendChild(button);
+    this.elements.$pagination.append($button);
   }
 
+  // Create dots with jQuery
   createDots() {
-    return DOMUtils.createElement('span', 'pagination-dots', '…');
+    return $('<span>').addClass('pagination-dots').text('…');
   }
 
-  // Empty state handling
+  // Empty state handling with jQuery
   showEmptyMessage(filter) {
-    if (!this.elements.emptyMessage) return;
+    if (!this.elements.$emptyMessage.length) return;
 
-    this.elements.grid.style.display = 'none';
-    this.elements.pagination.style.display = 'none';
+    this.elements.$grid.hide();
+    this.elements.$pagination.hide();
 
     const categoryName = filter === 'all' ? 'Projects' : filter.charAt(0).toUpperCase() + filter.slice(1);
 
-    this.elements.emptyMessage.innerHTML = `
+    this.elements.$emptyMessage.html(`
       <i class="fas fa-folder-open" aria-hidden="true"></i>
       <h3>No ${categoryName} Found</h3>
       <p>There are currently no projects in the ${filter === 'all' ? 'portfolio' : categoryName + ' category'}. Check back later!</p>
-    `;
-
-    this.elements.emptyMessage.style.display = 'block';
+    `).show();
   }
 
   hideEmptyMessage() {
-    if (this.elements.emptyMessage) {
-      this.elements.emptyMessage.style.display = 'none';
-      this.elements.grid.style.display = 'grid';
+    if (this.elements.$emptyMessage.length) {
+      this.elements.$emptyMessage.hide();
+      this.elements.$grid.show();
     }
   }
 
@@ -665,18 +854,18 @@ class ModalManager {
     this.bindEvents();
   }
 
-  // Initialize DOM elements
+  // Initialize DOM elements with jQuery
   initializeElements() {
     this.elements = {
-      overlay: DOMUtils.$('.modal-overlay'),
-      title: DOMUtils.$('.modal-title'),
-      tags: DOMUtils.$('.modal-tags'),
-      description: DOMUtils.$('.modal-description'),
-      closeBtn: DOMUtils.$('.modal-close'),
-      prevBtn: DOMUtils.$('.gallery-nav.prev'),
-      nextBtn: DOMUtils.$('.gallery-nav.next'),
-      thumbsContainer: DOMUtils.$('.modal-thumbs'),
-      buttons: DOMUtils.$$('.modal-buttons a')
+      $overlay: $('.modal-overlay'),
+      $title: $('.modal-title'),
+      $tags: $('.modal-tags'),
+      $description: $('.modal-description'),
+      $closeBtn: $('.modal-close'),
+      $prevBtn: $('.gallery-nav.prev'),
+      $nextBtn: $('.gallery-nav.next'),
+      $thumbsContainer: $('.modal-thumbs'),
+      $buttons: $('.modal-buttons a')
     };
   }
 
@@ -694,29 +883,29 @@ class ModalManager {
     };
   }
 
-  // Bind basic event listeners
+  // Bind basic event listeners with jQuery
   bindEvents() {
-    this.elements.closeBtn?.addEventListener('click', () => this.close());
-    this.elements.prevBtn?.addEventListener('click', () => this.navigateImage(-1));
-    this.elements.nextBtn?.addEventListener('click', () => this.navigateImage(1));
+    this.elements.$closeBtn.on('click', () => this.close());
+    this.elements.$prevBtn.on('click', () => this.navigateImage(-1));
+    this.elements.$nextBtn.on('click', () => this.navigateImage(1));
 
     this.keydownHandler = this.boundHandlers.keydownHandler;
 
-    this.elements.overlay?.addEventListener('click', (e) => {
-      if (e.target === this.elements.overlay) this.close();
+    this.elements.$overlay.on('click', (e) => {
+      if ($(e.target).is(this.elements.$overlay)) this.close();
     });
   }
 
-  // Modal opening and content management
-  openFromCard(card) {
-    if (!card || !this.elements.overlay) return;
+  // Modal opening and content management with jQuery
+  openFromCard($card) {
+    if (!$card || !$card.length || !this.elements.$overlay.length) return;
 
     try {
-      this.currentCard = card;
+      this.currentCard = $card;
 
-      state.modal.imageList = card.dataset.images.split(',');
+      state.modal.imageList = $card.data('images').split(',');
       state.modal.currentIndex = 0;
-      state.modal.savedScrollPosition = window.scrollY;
+      state.modal.savedScrollPosition = $(window).scrollTop();
 
       this.updateModalStaticContent();
       this.updateModalImageAndEvents();
@@ -726,7 +915,7 @@ class ModalManager {
       this.startSlideshow();
 
       // Update URL
-      const slug = card.dataset.projectSlug;
+      const slug = $card.data('project-slug');
       history.replaceState(
         { slug, scrollY: state.modal.savedScrollPosition },
         '',
@@ -738,46 +927,48 @@ class ModalManager {
     }
   }
 
+  // Update modal static content with jQuery
   updateModalStaticContent() {
-    if (!this.currentCard) return;
+    if (!this.currentCard || !this.currentCard.length) return;
 
-    const title = this.currentCard.querySelector('.card-title')?.textContent || '';
-    const tags = this.currentCard.querySelector('.card-tags')?.textContent || '';
-    const description = this.currentCard.querySelector('.card-description')?.textContent || '';
+    const title = this.currentCard.find('.card-title').text() || '';
+    const tags = this.currentCard.find('.card-tags').text() || '';
+    const description = this.currentCard.find('.card-description').text() || '';
 
-    if (this.elements.title) this.elements.title.textContent = title;
-    if (this.elements.tags) this.elements.tags.textContent = tags;
-    if (this.elements.description) this.elements.description.textContent = description;
+    this.elements.$title.text(title);
+    this.elements.$tags.text(tags);
+    this.elements.$description.text(description);
 
     this.updateActionButtons();
   }
 
+  // Update modal image and events with jQuery
   updateModalImageAndEvents() {
-    const imageElement = DOMUtils.$('.modal-img');
+    const $imageElement = $('.modal-img');
 
-    if (imageElement) {
-      imageElement.src = state.modal.imageList[state.modal.currentIndex];
-      imageElement.alt = this.currentCard?.querySelector('.card-title')?.textContent || 'Project image';
+    if ($imageElement.length) {
+      $imageElement
+        .attr('src', state.modal.imageList[state.modal.currentIndex])
+        .attr('alt', this.currentCard.find('.card-title').text() || 'Project image')
+        .attr('draggable', 'false');
 
-      imageElement.draggable = false;
-      imageElement.setAttribute('draggable', 'false');
-
-      this.setupImagePauseEvents(imageElement);
-    } else {
-      console.warn('Modal image element not found');
+      this.setupImagePauseEvents($imageElement);
     }
   }
 
+  // Update action buttons with jQuery
   updateActionButtons() {
-    if (!this.currentCard) return;
+    if (!this.currentCard || !this.currentCard.length) return;
 
-    const links = this.currentCard.querySelectorAll('.card-link-item');
+    const $links = this.currentCard.find('.card-link-item');
 
-    this.elements.buttons.forEach((button, index) => {
-      if (links[index]) {
-        button.href = links[index].href;
+    this.elements.$buttons.each((index, button) => {
+      const $button = $(button);
+      const $link = $links.eq(index);
+      if ($link.length) {
+        $button.attr('href', $link.attr('href'));
         const linkText = index === 0 ? 'Live Demo' : 'Source Code';
-        button.setAttribute('aria-label', `${linkText} for ${this.elements.title?.textContent || 'project'}`);
+        $button.attr('aria-label', `${linkText} for ${this.elements.$title.text() || 'project'}`);
       }
     });
   }
@@ -819,35 +1010,33 @@ class ModalManager {
   }
 
   resumeSlideshow() {
-    if (this.elements.overlay.style.display === 'flex') {
+    if (this.elements.$overlay.css('display') === 'flex') {
       this.startSlideshow();
     }
   }
 
-  // Thumbnail management
+  // Thumbnail management with jQuery
   buildThumbnails() {
-    if (!this.elements.thumbsContainer) return;
+    if (!this.elements.$thumbsContainer.length) return;
 
     this.cleanupThumbnails();
-    this.elements.thumbsContainer.innerHTML = '';
+    this.elements.$thumbsContainer.empty();
 
-    const fragment = document.createDocumentFragment();
+    const $fragment = $(document.createDocumentFragment());
 
     state.modal.imageList.forEach((src, index) => {
-      const thumb = DOMUtils.createElement('img', 'modal-thumb');
-      thumb.src = src;
-      thumb.loading = 'lazy';
-      thumb.dataset.index = index;
-
-      thumb.draggable = false;
-      thumb.setAttribute('draggable', 'false');
-
-      DOMUtils.setAttributes(thumb, {
-        'aria-label': `Image ${index + 1} of ${state.modal.imageList.length}`,
-        'role': 'tab',
-        'tabindex': '0',
-        'aria-selected': index === state.modal.currentIndex ? 'true' : 'false'
-      });
+      const $thumb = $('<img>')
+        .addClass('modal-thumb')
+        .attr({
+          'src': src,
+          'loading': 'lazy',
+          'data-index': index,
+          'aria-label': `Image ${index + 1} of ${state.modal.imageList.length}`,
+          'role': 'tab',
+          'tabindex': '0',
+          'aria-selected': index === state.modal.currentIndex ? 'true' : 'false',
+          'draggable': 'false'
+        });
 
       const clickHandler = () => this.switchToImage(index);
       const keyHandler = (e) => {
@@ -862,19 +1051,16 @@ class ModalManager {
         return false;
       };
 
-      thumb.addEventListener('click', clickHandler);
-      thumb.addEventListener('keydown', keyHandler);
-      thumb.addEventListener('dragstart', preventDragHandler);
-      thumb.addEventListener('selectstart', preventDragHandler);
+      $thumb.on('click', clickHandler);
+      $thumb.on('keydown', keyHandler);
+      $thumb.on('dragstart selectstart', preventDragHandler);
 
-      thumb._clickHandler = clickHandler;
-      thumb._keyHandler = keyHandler;
-      thumb._preventDragHandler = preventDragHandler;
+      $thumb.data('handlers', { clickHandler, keyHandler, preventDragHandler });
 
-      fragment.appendChild(thumb);
+      $fragment.append($thumb);
     });
 
-    this.elements.thumbsContainer.appendChild(fragment);
+    this.elements.$thumbsContainer.append($fragment);
     this.setupThumbnailScrolling();
 
     requestAnimationFrame(() => {
@@ -882,14 +1068,16 @@ class ModalManager {
     });
   }
 
+  // Highlight thumbnail with jQuery
   highlightThumbnail(index) {
-    if (!this.elements.thumbsContainer) return;
+    if (!this.elements.$thumbsContainer.length) return;
 
-    const thumbs = this.elements.thumbsContainer.querySelectorAll('.modal-thumb');
-    thumbs.forEach(thumb => {
-      const isActive = Number(thumb.dataset.index) === index;
-      thumb.classList.toggle('active', isActive);
-      thumb.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    const $thumbs = this.elements.$thumbsContainer.find('.modal-thumb');
+    $thumbs.each((i, thumb) => {
+      const $thumb = $(thumb);
+      const isActive = Number($thumb.data('index')) === index;
+      $thumb.toggleClass('active', isActive);
+      $thumb.attr('aria-selected', isActive ? 'true' : 'false');
 
       if (isActive) {
         thumb.scrollIntoView({
@@ -901,36 +1089,27 @@ class ModalManager {
     });
   }
 
-  // Event handling methods
-  setupImagePauseEvents(imageElement = null) {
-    const element = imageElement || DOMUtils.$('.modal-img');
+  // Event handling methods with jQuery
+  setupImagePauseEvents($imageElement = null) {
+    const $element = $imageElement || $('.modal-img');
 
-    if (!element) {
-      console.warn('Modal image element not found (setupImagePauseEvents)');
-      return;
-    }
+    if (!$element.length) return;
 
-    this.cleanupImagePauseEvents(element);
+    this.cleanupImagePauseEvents($element);
 
-    element.addEventListener("mousedown", this.boundHandlers.pauseSlide);
-    element.addEventListener("mouseup", this.boundHandlers.handleMouseUp);
-    element.addEventListener("mouseleave", this.boundHandlers.handleMouseUp);
-    element.addEventListener("touchstart", this.boundHandlers.pauseSlide, { passive: true });
-    element.addEventListener("touchend", this.boundHandlers.handleMouseUp);
-    element.addEventListener("touchcancel", this.boundHandlers.handleMouseUp);
+    $element.on("mousedown", this.boundHandlers.pauseSlide);
+    $element.on("mouseup mouseleave", this.boundHandlers.handleMouseUp);
+    $element.on("touchstart", this.boundHandlers.pauseSlide);
+    $element.on("touchend touchcancel", this.boundHandlers.handleMouseUp);
+    $element.on('dragstart selectstart', this.boundHandlers.preventImageDrag);
 
-    if (this.boundHandlers.preventImageDrag) {
-      element.addEventListener('dragstart', this.boundHandlers.preventImageDrag);
-      element.addEventListener('selectstart', this.boundHandlers.preventImageDrag);
-    }
-
-    this.elements.image = element;
+    this.elements.$image = $element;
   }
 
   setupThumbnailScrolling() {
-    if (this.elements.thumbsContainer) {
-      this.elements.thumbsContainer.removeEventListener('wheel', this.boundHandlers.handleThumbnailScroll);
-      this.elements.thumbsContainer.addEventListener('wheel', this.boundHandlers.handleThumbnailScroll, { passive: false });
+    if (this.elements.$thumbsContainer.length) {
+      this.elements.$thumbsContainer.off('wheel.thumbnails');
+      this.elements.$thumbsContainer.on('wheel.thumbnails', this.boundHandlers.handleThumbnailScroll);
     }
   }
 
@@ -947,51 +1126,52 @@ class ModalManager {
   handleMouseUp() {
     state.clearTimer('resumeSlideshow');
     state.setTimer('resumeSlideshow', () => {
-      if (this.elements.overlay?.style.display === 'flex' && state.modal.isSlideActive === false) {
+      if (this.elements.$overlay.css('display') === 'flex' && state.modal.isSlideActive === false) {
         this.resumeSlideshow();
       }
     }, 1000);
   }
 
   handleThumbnailScroll(e) {
-    if (this.elements.thumbsContainer) {
-      if (e.deltaY !== 0) {
+    if (this.elements.$thumbsContainer.length) {
+      if (e.originalEvent.deltaY !== 0) {
         e.preventDefault();
-        this.elements.thumbsContainer.scrollLeft += e.deltaY;
+        this.elements.$thumbsContainer[0].scrollLeft += e.originalEvent.deltaY;
       }
     }
   }
 
-  // Modal display methods
+  // Modal display methods with jQuery
   show() {
-    this.elements.overlay.style.display = 'flex';
+    this.elements.$overlay.show();
 
     if (window.portfolioApp?.managers?.navigation) {
       window.portfolioApp.managers.navigation.setModalState(true);
     }
 
-    document.body.style.cssText = `
-      overflow: hidden;
-      position: fixed;
-      top: -${state.modal.savedScrollPosition}px;
-      width: 100%;
-    `;
+    $('body').css({
+      overflow: 'hidden',
+      position: 'fixed',
+      top: `-${state.modal.savedScrollPosition}px`,
+      width: '100%'
+    });
 
-    const removeFocusTrap = AccessibilityManager.trapFocus(this.elements.overlay);
+    const removeFocusTrap = AccessibilityManager.trapFocus(this.elements.$overlay);
     this.cleanupHandlers.push(removeFocusTrap);
 
-    window.addEventListener('keydown', this.keydownHandler);
+    $(window).on('keydown.modal', this.keydownHandler);
 
     state.setTimer('focusCloseBtn', () => {
-      this.elements.closeBtn?.focus();
+      this.elements.$closeBtn.focus();
     }, 100);
   }
 
+  // Close modal with jQuery
   close() {
     this.cleanupThumbnails();
     this.cleanupImagePauseEvents();
 
-    this.elements.overlay.style.display = 'none';
+    this.elements.$overlay.hide();
 
     if (window.portfolioApp?.managers?.navigation) {
       window.portfolioApp.managers.navigation.setModalState(false);
@@ -999,68 +1179,54 @@ class ModalManager {
 
     this.pauseSlideshow();
 
-    window.removeEventListener('keydown', this.keydownHandler);
+    $(window).off('keydown.modal');
 
-    if (this.elements.thumbsContainer) {
-      this.elements.thumbsContainer.removeEventListener('wheel', this.boundHandlers.handleThumbnailScroll);
+    if (this.elements.$thumbsContainer.length) {
+      this.elements.$thumbsContainer.off('wheel.thumbnails');
     }
 
     this.cleanupHandlers.forEach(cleanup => cleanup?.());
     this.cleanupHandlers = [];
 
-    document.body.style.cssText = '';
-    window.scrollTo({
-      top: state.modal.savedScrollPosition,
-      behavior: 'instant'
+    $('body').css({
+      overflow: '',
+      position: '',
+      top: '',
+      width: ''
     });
+
+    $(window).scrollTop(state.modal.savedScrollPosition);
 
     const hash = window.location.hash;
     if (hash.startsWith('#projects/')) {
       history.replaceState({}, '', '#projects');
     }
 
-    this.elements.image = null;
+    this.elements.$image = null;
     this.currentCard = null;
   }
 
-  // Cleanup methods
-  cleanupImagePauseEvents(imageElement = null) {
-    const element = imageElement || this.elements.image;
+  // Cleanup methods with jQuery
+  cleanupImagePauseEvents($imageElement = null) {
+    const $element = $imageElement || this.elements.$image;
 
-    if (element) {
-      const { pauseSlide, handleMouseUp, preventImageDrag } = this.boundHandlers;
-
-      element.removeEventListener("mousedown", pauseSlide);
-      element.removeEventListener("mouseup", handleMouseUp);
-      element.removeEventListener("mouseleave", handleMouseUp);
-      element.removeEventListener("touchstart", pauseSlide);
-      element.removeEventListener("touchend", handleMouseUp);
-      element.removeEventListener("touchcancel", handleMouseUp);
-
-      if (preventImageDrag) {
-        element.removeEventListener('dragstart', preventImageDrag);
-        element.removeEventListener('selectstart', preventImageDrag);
-      }
+    if ($element && $element.length) {
+      $element.off("mousedown mouseup mouseleave touchstart touchend touchcancel dragstart selectstart");
     }
   }
 
   cleanupThumbnails() {
-    if (!this.elements.thumbsContainer) return;
+    if (!this.elements.$thumbsContainer.length) return;
 
-    const thumbs = this.elements.thumbsContainer.querySelectorAll('.modal-thumb');
-    thumbs.forEach(thumb => {
-      if (thumb._clickHandler) {
-        thumb.removeEventListener('click', thumb._clickHandler);
-        delete thumb._clickHandler;
-      }
-      if (thumb._keyHandler) {
-        thumb.removeEventListener('keydown', thumb._keyHandler);
-        delete thumb._keyHandler;
-      }
-      if (thumb._preventDragHandler) {
-        thumb.removeEventListener('dragstart', thumb._preventDragHandler);
-        thumb.removeEventListener('selectstart', thumb._preventDragHandler);
-        delete thumb._preventDragHandler;
+    const $thumbs = this.elements.$thumbsContainer.find('.modal-thumb');
+    $thumbs.each((i, thumb) => {
+      const $thumb = $(thumb);
+      const handlers = $thumb.data('handlers');
+      if (handlers) {
+        $thumb.off('click', handlers.clickHandler);
+        $thumb.off('keydown', handlers.keyHandler);
+        $thumb.off('dragstart selectstart', handlers.preventDragHandler);
+        $thumb.removeData('handlers');
       }
     });
   }
@@ -1079,35 +1245,27 @@ class NavigationManager {
     this.initScrollHeaderEffect();
   }
 
-  // Initialize DOM elements
+  // Initialize DOM elements with jQuery
   initializeElements() {
     this.elements = {
-      mobileToggle: DOMUtils.$('.mobile-menu-toggle'),
-      navLinks: DOMUtils.$$('.nav-link'),
-      internalLinks: DOMUtils.$$('a[href^="#"]'),
-      scrollToTop: DOMUtils.$('.scroll-to-top'),
-      header: DOMUtils.$('.site-header')
+      $mobileToggle: $('.mobile-menu-toggle'),
+      $navLinks: $('.nav-link'),
+      $internalLinks: $('a[href^="#"]'),
+      $scrollToTop: $('.scroll-to-top'),
+      $header: $('.site-header')
     };
   }
 
-  // Bind navigation events
+  // Bind navigation events with jQuery
   bindEvents() {
     // Mobile menu toggle
-    const mobileToggleHandler = () => this.toggleMobileMenu();
-    this.boundHandlers.set('mobileToggle', mobileToggleHandler);
-    this.elements.mobileToggle?.addEventListener('click', mobileToggleHandler);
+    this.elements.$mobileToggle.on('click', () => this.toggleMobileMenu());
 
     // Navigation links
-    this.elements.navLinks.forEach(link => {
-      const handler = () => this.closeMobileMenu();
-      link.addEventListener('click', handler);
-      this.boundHandlers.set(link, handler);
-    });
+    this.elements.$navLinks.on('click', () => this.closeMobileMenu());
 
     // Outside click handling
-    const outsideClickHandler = (e) => this.handleOutsideClick(e);
-    this.boundHandlers.set('outsideClick', outsideClickHandler);
-    document.addEventListener('click', outsideClickHandler);
+    $(document).on('click.navigation', (e) => this.handleOutsideClick(e));
 
     this.initSmoothScrolling();
     this.initScrollHandling();
@@ -1116,44 +1274,41 @@ class NavigationManager {
   // Mobile menu methods
   toggleMobileMenu() {
     state.ui.isMobileMenuOpen = !state.ui.isMobileMenuOpen;
-    document.body.classList.toggle('mobile-menu-open', state.ui.isMobileMenuOpen);
+    $('body').toggleClass('mobile-menu-open', state.ui.isMobileMenuOpen);
 
-    if (this.elements.mobileToggle) {
-      this.elements.mobileToggle.setAttribute('aria-expanded', state.ui.isMobileMenuOpen.toString());
-    }
+    this.elements.$mobileToggle.attr('aria-expanded', state.ui.isMobileMenuOpen.toString());
   }
 
   closeMobileMenu() {
     state.ui.isMobileMenuOpen = false;
-    document.body.classList.remove('mobile-menu-open');
+    $('body').removeClass('mobile-menu-open');
 
-    if (this.elements.mobileToggle) {
-      this.elements.mobileToggle.setAttribute('aria-expanded', 'false');
-    }
+    this.elements.$mobileToggle.attr('aria-expanded', 'false');
   }
 
   handleOutsideClick(e) {
     if (state.ui.isMobileMenuOpen &&
-      !e.target.closest('.nav-links') &&
-      !e.target.closest('.mobile-menu-toggle')) {
+      !$(e.target).closest('.nav-links').length &&
+      !$(e.target).closest('.mobile-menu-toggle').length) {
       this.closeMobileMenu();
     }
   }
 
-  // Active link management
-  setActiveLink(activeLink) {
-    this.elements.navLinks.forEach(link => link.classList.remove('active'));
-    activeLink.classList.add('active');
+  // Active link management with jQuery
+  setActiveLink($activeLink) {
+    this.elements.$navLinks.removeClass('active');
+    $activeLink.addClass('active');
   }
 
-  // Smooth scrolling setup
+  // Smooth scrolling setup with jQuery
   initSmoothScrolling() {
-    this.elements.internalLinks.forEach(link => {
-      if (link.closest('.modal-buttons')) return;
+    this.elements.$internalLinks.each((i, link) => {
+      const $link = $(link);
+      if ($link.closest('.modal-buttons').length) return;
 
-      link.addEventListener('click', (e) => {
+      $link.on('click', (e) => {
         e.preventDefault();
-        const targetId = link.getAttribute('href');
+        const targetId = $link.attr('href');
 
         if (targetId && targetId !== '#') {
           this.isNavigating = true;
@@ -1170,35 +1325,30 @@ class NavigationManager {
     });
 
     // Scroll to top button
-    this.elements.scrollToTop?.addEventListener('click', () => {
+    this.elements.$scrollToTop.on('click', () => {
       this.isNavigating = true;
 
-      const target = document.documentElement || document.body;
-
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-
-      setTimeout(() => {
+      $('html, body').animate({
+        scrollTop: 0
+      }, CONFIG.scrollAnimation.duration, () => {
         this.isNavigating = false;
-      }, CONFIG.scrollAnimation.duration + 100);
+      });
     });
   }
 
-  // Header scroll effect
+  // Header scroll effect with jQuery
   initScrollHeaderEffect() {
     let ticking = false;
 
     const updateHeader = () => {
       const scrollY = this.isModalOpen ?
         (state.modal?.savedScrollPosition || 0) :
-        window.scrollY;
+        $(window).scrollTop();
 
       if (scrollY > 1) {
-        this.elements.header?.classList.add('scrolled');
+        this.elements.$header.addClass('scrolled');
       } else {
-        this.elements.header?.classList.remove('scrolled');
+        this.elements.$header.removeClass('scrolled');
       }
 
       ticking = false;
@@ -1213,13 +1363,13 @@ class NavigationManager {
       }
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    $(window).on('scroll.header', onScroll);
     this.scrollHandlers.add(onScroll);
 
     updateHeader();
   }
 
-  // Scroll-based updates
+  // Scroll-based updates with jQuery
   initScrollHandling() {
     const scrollHandler = Utils.throttle(() => {
       if (this.isModalOpen) return;
@@ -1228,7 +1378,7 @@ class NavigationManager {
       this.updateScrollToTopVisibility();
     }, 100);
 
-    window.addEventListener('scroll', scrollHandler, { passive: true });
+    $(window).on('scroll.navigation', scrollHandler);
     this.scrollHandlers.add(scrollHandler);
   }
 
@@ -1238,9 +1388,9 @@ class NavigationManager {
     if (isOpen) {
       const scrollY = state.modal?.savedScrollPosition || 0;
       if (scrollY > 1) {
-        this.elements.header?.classList.add('scrolled');
+        this.elements.$header.addClass('scrolled');
       } else {
-        this.elements.header?.classList.remove('scrolled');
+        this.elements.$header.removeClass('scrolled');
       }
     }
   }
@@ -1250,82 +1400,68 @@ class NavigationManager {
 
     if (visibleSections.length > 0) {
       const mostVisible = '#' + visibleSections[0].id;
-      const targetLink = DOMUtils.$(`.nav-link[href="${mostVisible}"]`);
+      const $targetLink = $(`.nav-link[href="${mostVisible}"]`);
 
-      if (targetLink && !targetLink.classList.contains('active')) {
-        this.setActiveLink(targetLink);
+      if ($targetLink.length && !$targetLink.hasClass('active')) {
+        this.setActiveLink($targetLink);
       }
     }
   }
 
   updateScrollToTopVisibility() {
-    if (this.elements.scrollToTop) {
-      const shouldShow = window.scrollY > 300;
-      this.elements.scrollToTop.style.display = shouldShow ? 'flex' : 'none';
+    if (this.elements.$scrollToTop.length) {
+      const shouldShow = $(window).scrollTop() > 300;
+      this.elements.$scrollToTop.css('display', shouldShow ? 'flex' : 'none');
     }
   }
 
   setInitialActiveState() {
     const hash = window.location.hash.split('/')[0] || '#home';
-    const activeLink = DOMUtils.$(`.nav-link[href="${hash}"]`);
+    const $activeLink = $(`.nav-link[href="${hash}"]`);
 
-    if (activeLink) {
-      this.setActiveLink(activeLink);
+    if ($activeLink.length) {
+      this.setActiveLink($activeLink);
     }
   }
 
-  // Cleanup method
+  // Cleanup method with jQuery
   destroy() {
-    const mobileToggleHandler = this.boundHandlers.get('mobileToggle');
-    if (mobileToggleHandler && this.elements.mobileToggle) {
-      this.elements.mobileToggle.removeEventListener('click', mobileToggleHandler);
-    }
+    this.elements.$mobileToggle.off('click');
+    this.elements.$navLinks.off('click');
+    $(document).off('click.navigation');
+    $(window).off('scroll.header scroll.navigation');
 
-    this.elements.navLinks.forEach(link => {
-      const handler = this.boundHandlers.get(link);
-      if (handler) {
-        link.removeEventListener('click', handler);
-      }
-    });
-
-    const outsideClickHandler = this.boundHandlers.get('outsideClick');
-    if (outsideClickHandler) {
-      document.removeEventListener('click', outsideClickHandler);
-    }
-
-    this.scrollHandlers.forEach(handler => {
-      window.removeEventListener('scroll', handler);
-    });
     this.scrollHandlers.clear();
     this.boundHandlers.clear();
-
-    console.log('NavigationManager completely cleaned up');
   }
 }
 
 // =================== ANIMATION MODULE ===================
 class AnimationManager {
   constructor() {
+    this.homeManager = null;
     this.initializeElements();
   }
 
-  // Initialize DOM elements
+  // Initialize DOM elements with jQuery
   initializeElements() {
     this.elements = {
-      professionText: DOMUtils.$('#profession-text'),
-      yearSpan: DOMUtils.$('#current-year')
+      $professionText: $('#profession-text'),
+      $yearSpan: $('#current-year')
     };
   }
 
-  // Typewriter animation
-  initTypewriter() {
-    if (!this.elements.professionText) return;
+  setHomeManager(homeManager) {
+    this.homeManager = homeManager;
+  }
 
-    const professions = [
-      "Full Stack Developer",
-      "AI-Powered App Creator",
-      "Game Dev Enthusiast",
-    ];
+  // Typewriter animation with jQuery
+  initTypewriter() {
+    if (!this.elements.$professionText.length) return;
+
+    const professions = this.homeManager ?
+      this.homeManager.getTypewriterProfessions() :
+      ["Full Stack Developer", "AI-Powered App Creator", "Game Dev Enthusiast"];
 
     let currentIndex = 0;
     let charIndex = 0;
@@ -1335,10 +1471,10 @@ class AnimationManager {
       const currentProfession = professions[currentIndex];
 
       if (isDeleting) {
-        this.elements.professionText.textContent = currentProfession.substring(0, charIndex - 1);
+        this.elements.$professionText.text(currentProfession.substring(0, charIndex - 1));
         charIndex--;
       } else {
-        this.elements.professionText.textContent = currentProfession.substring(0, charIndex + 1);
+        this.elements.$professionText.text(currentProfession.substring(0, charIndex + 1));
         charIndex++;
       }
 
@@ -1359,20 +1495,17 @@ class AnimationManager {
     state.setTimer('typewriterStart', typeEffect, 1000);
   }
 
-  // Update copyright year
+  // Update copyright year with jQuery
   updateCopyrightYear() {
-    if (this.elements.yearSpan) {
-      this.elements.yearSpan.textContent = new Date().getFullYear();
+    if (this.elements.$yearSpan.length) {
+      this.elements.$yearSpan.text(new Date().getFullYear());
     }
   }
 
-  // Scroll reveal animations
+  // Scroll reveal animations with jQuery
   initScrollRevealAnimations() {
-    const sectionsToReveal = DOMUtils.$$('section#about, section#skills, section#projects, section#contact');
-    if (!sectionsToReveal || sectionsToReveal.length === 0) {
-      console.warn('No sections found for reveal animation.');
-      return;
-    }
+    const $sectionsToReveal = $('section#about, section#skills, section#projects, section#contact');
+    if (!$sectionsToReveal.length) return;
 
     const sectionConfigs = {
       'about': { rootMargin: '0px 0px -15% 0px', threshold: 0.05 },
@@ -1384,25 +1517,25 @@ class AnimationManager {
     const revealCallback = (entries, observer) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          const section = entry.target;
-          if (!section.classList.contains('is-visible')) {
-            section.classList.add('reveal-transition');
+          const $section = $(entry.target);
+          if (!$section.hasClass('is-visible')) {
+            $section.addClass('reveal-transition');
 
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
-                section.classList.add('is-visible');
+                $section.addClass('is-visible');
               });
             });
 
-            observer.unobserve(section);
+            observer.unobserve(entry.target);
           }
         }
       });
     };
 
     // Create observers for each section
-    sectionsToReveal.forEach(section => {
-      const sectionId = section.id;
+    $sectionsToReveal.each((i, section) => {
+      const sectionId = $(section).attr('id');
       const config = sectionConfigs[sectionId] || { rootMargin: '0px 0px -15% 0px', threshold: 0.05 };
 
       const observer = new IntersectionObserver(revealCallback, {
@@ -1411,7 +1544,7 @@ class AnimationManager {
         threshold: config.threshold
       });
 
-      section.classList.add('reveal-section');
+      $(section).addClass('reveal-section');
       observer.observe(section);
     });
   }
@@ -1430,7 +1563,7 @@ class RouteManager {
 
   // Bind routing events
   bindEvents() {
-    window.addEventListener('popstate', (e) => this.handlePopState(e));
+    $(window).on('popstate', (e) => this.handlePopState(e.originalEvent));
     this.handleInitialRoute();
   }
 
@@ -1441,13 +1574,18 @@ class RouteManager {
     if (hash.startsWith('#projects/')) {
       history.replaceState(null, null, window.location.pathname + window.location.search);
 
-      const modalOverlay = DOMUtils.$('.modal-overlay');
-      if (modalOverlay) {
-        modalOverlay.style.display = 'none';
-        document.body.style.cssText = '';
+      const $modalOverlay = $('.modal-overlay');
+      if ($modalOverlay.length) {
+        $modalOverlay.hide();
+        $('body').css({
+          overflow: '',
+          position: '',
+          top: '',
+          width: ''
+        });
       }
 
-      window.scrollTo(0, 0);
+      $(window).scrollTop(0);
       return;
     }
   }
@@ -1460,21 +1598,21 @@ class RouteManager {
       const { slug, scrollY = 0 } = e.state;
       state.modal.savedScrollPosition = scrollY;
 
-      if (modal?.elements.overlay.style.display !== 'flex') {
+      if (modal?.elements.$overlay.css('display') !== 'flex') {
         this.openProjectModal(slug, false);
       }
-    } else if (modal?.elements.overlay.style.display === 'flex') {
+    } else if (modal?.elements.$overlay.css('display') === 'flex') {
       modal.close();
     }
   }
 
   // Open project modal by slug
   openProjectModal(slug, useDelay = true) {
-    const card = state.cards.find(c => c.dataset.projectSlug === slug);
+    const $card = state.cards.find($c => $c.data('project-slug') === slug);
     const modal = this.modalManager || window.modalManager;
 
-    if (card && modal) {
-      const openModal = () => modal.openFromCard(card);
+    if ($card && modal) {
+      const openModal = () => modal.openFromCard($card);
 
       if (useDelay) {
         state.setTimer('openModalDelay', openModal, 300);
@@ -1501,7 +1639,6 @@ class PortfolioApp {
       this.setupGlobalEvents();
 
       this.isInitialized = true;
-      console.log('Portfolio application started successfully');
 
     } catch (error) {
       console.error('Error starting application:', error);
@@ -1509,7 +1646,7 @@ class PortfolioApp {
     }
   }
 
-  // Setup scroll restoration and hash cleanup
+  // Setup scroll restoration and hash cleanup with jQuery
   setupScrollRestoration() {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
@@ -1519,26 +1656,36 @@ class PortfolioApp {
       history.replaceState(null, null, window.location.pathname + window.location.search);
     }
 
-    const modalOverlay = DOMUtils.$('.modal-overlay');
-    if (modalOverlay && modalOverlay.style.display === 'flex') {
-      modalOverlay.style.display = 'none';
-      document.body.style.cssText = '';
+    const $modalOverlay = $('.modal-overlay');
+    if ($modalOverlay.length && $modalOverlay.css('display') === 'flex') {
+      $modalOverlay.hide();
+      $('body').css({
+        overflow: '',
+        position: '',
+        top: '',
+        width: ''
+      });
     }
 
-    window.scrollTo(0, 0);
+    $(window).scrollTop(0);
   }
 
   // Initialize all managers
   async initializeManagers() {
-    this.managers.modal = new ModalManager();
+    // Initialize content managers
+    this.managers.home = new HomeManager();
+    this.managers.about = new AboutManager();
+    this.managers.skills = new SkillsManager();
+    this.managers.contact = new ContactManager();
 
+    // Initialize existing managers
+    this.managers.modal = new ModalManager();
     this.managers.cards = new CardManager();
     this.managers.cards.setModalManager(this.managers.modal);
-
     this.managers.navigation = new NavigationManager();
     this.managers.animation = new AnimationManager();
+    this.managers.animation.setHomeManager(this.managers.home);
     this.managers.routes = new RouteManager();
-
     this.managers.routes.setModalManager(this.managers.modal);
 
     // Global access
@@ -1555,51 +1702,43 @@ class PortfolioApp {
     this.managers.navigation.setInitialActiveState();
   }
 
-  // Setup global event listeners
+  // Setup global event listeners with jQuery
   setupGlobalEvents() {
     // Resize events
-    window.addEventListener('resize', Utils.debounce(() => {
+    $(window).on('resize', Utils.debounce(() => {
       if (state.currentPage) {
         this.managers.cards.showPage(state.currentPage);
       }
     }, 200));
 
     // Cleanup before page unload
-    window.addEventListener('beforeunload', () => {
+    $(window).on('beforeunload', () => {
       this.cleanup();
     });
 
     // Global error handling
-    window.addEventListener('error', (e) => {
+    $(window).on('error', (e) => {
       console.error('Global error caught:', {
-        message: e.message,
-        filename: e.filename,
-        lineno: e.lineno,
-        colno: e.colno,
-        error: e.error
+        message: e.originalEvent.message,
+        filename: e.originalEvent.filename,
+        lineno: e.originalEvent.lineno,
+        colno: e.originalEvent.colno,
+        error: e.originalEvent.error
       });
 
-      if (e.error?.name === 'TypeError' && e.message.includes('modalManager')) {
-        this.handleCriticalError(e.error);
+      if (e.originalEvent.error?.name === 'TypeError' && e.originalEvent.message.includes('modalManager')) {
+        this.handleCriticalError(e.originalEvent.error);
       }
-    });
-
-    window.addEventListener('unhandledrejection', (e) => {
-      console.error('Unhandled promise rejection:', e.reason);
-      e.preventDefault();
     });
   }
 
   // Handle critical application errors
   handleCriticalError(error) {
     try {
-      console.log('Switching to emergency mode...');
-
-      document.querySelectorAll('.hide, .reveal-section, .reveal-item').forEach(el => {
-        el.style.opacity = '1';
-        el.style.transform = 'none';
-        el.classList.remove('hide');
-      });
+      $('.hide, .reveal-section, .reveal-item').css({
+        opacity: '1',
+        transform: 'none'
+      }).removeClass('hide');
 
       if (cardsData?.length && this.managers.cards) {
         this.managers.cards.createCards();
@@ -1618,13 +1757,9 @@ class PortfolioApp {
 
   // Application cleanup
   cleanup() {
-    console.log('Cleaning up application...');
-
     state.clearAllTimers();
     state.reset();
-    DOMUtils.cache.clear();
-
-    console.log('Cleanup completed');
+    JQueryUtils.cache.clear();
   }
 
   // Public API methods
@@ -1644,12 +1779,10 @@ const app = new PortfolioApp();
 window.portfolioApp = app;
 window.appState = state;
 
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => app.init());
-} else {
+// Initialize when DOM is ready with jQuery
+$(document).ready(() => {
   app.init();
-}
+});
 
 // Export for potential module usage
 export { PortfolioApp, state };

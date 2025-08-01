@@ -6,7 +6,6 @@ A modern, responsive portfolio website built with HTML, CSS, and JavaScript. Fea
 
 Check out the live version: [https://omeroztprk.github.io/](https://omeroztprk.github.io/)
 
-
 ## Features
 
 - **Responsive Design**: Works seamlessly across desktop, tablet, and mobile devices
@@ -90,3 +89,7 @@ To customize the website with your own content:
 ## Contributing
 
 Feel free to submit issues and pull requests to improve the project.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

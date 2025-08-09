@@ -2,9 +2,9 @@
 
 A modern, responsive portfolio website built with HTML, CSS, and JavaScript. Features a clean design with smooth animations, project showcase, and interactive modals.
 
-## Live Demo
+## Live Portfolio
 
-Check out the live version: [https://omeroztprk.github.io/](https://omeroztprk.github.io/)
+Visit my portfolio: [omeroztprk.github.io](https://omeroztprk.github.io/)
 
 ## Features
 
@@ -56,7 +56,7 @@ portfolio-website/
         └── screenshots
 ```
 
-## Getting Started
+## Installation
 
 1. Clone the repository:
 ```bash
